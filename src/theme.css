@@ -46,3 +46,16 @@ body {
 
 @keyframes vl-breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
 @keyframes vl-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Scrollbars — WebView2 is Chromium. Use ONLY ::-webkit-scrollbar: setting the
+   standard scrollbar-width/scrollbar-color would disable these on Chromium 121+. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--bg-4);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #3a3a44; }
+::-webkit-scrollbar-corner { background: transparent; }
