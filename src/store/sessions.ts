@@ -17,12 +17,21 @@ export interface Session {
   openInCanvas: boolean;
 }
 
+export interface GridItem {
+  i: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface PersistedSnapshot {
   workspaces: Workspace[];
   activeWorkspaceId: string;
   sessions: Session[];
   counter: number;
   workspaceCounter: number;
+  layouts: Record<string, GridItem[]>;
 }
 
 interface AppState extends PersistedSnapshot {
@@ -34,6 +43,7 @@ interface AppState extends PersistedSnapshot {
   setFocus: (id: string) => void;
   setSessionState: (id: string, state: SessionState) => void;
   reorderInZone: (workspaceId: string, cwd: string, orderedIds: string[]) => void;
+  setLayout: (workspaceId: string, items: GridItem[]) => void;
   createWorkspace: (name?: string) => string;
   renameWorkspace: (id: string, name: string) => void;
   closeWorkspace: (id: string) => void;
@@ -57,6 +67,7 @@ export const useSessions = create<AppState>((set, get) => ({
   focusId: null,
   counter: 0,
   workspaceCounter: 1,
+  layouts: {},
 
   createSession: (cwd, name) => {
     const id = newId();
@@ -116,6 +127,9 @@ export const useSessions = create<AppState>((set, get) => ({
       };
     }),
 
+  setLayout: (workspaceId, items) =>
+    set((st) => ({ layouts: { ...st.layouts, [workspaceId]: items } })),
+
   createWorkspace: (name) => {
     const id = newId();
     set((st) => {
@@ -137,7 +151,9 @@ export const useSessions = create<AppState>((set, get) => ({
       const workspaces = st.workspaces.filter((w) => w.id !== id);
       const sessions = st.sessions.filter((s) => s.workspaceId !== id);
       const activeWorkspaceId = st.activeWorkspaceId === id ? workspaces[0].id : st.activeWorkspaceId;
-      return { workspaces, sessions, activeWorkspaceId };
+      const layouts = { ...st.layouts };
+      delete layouts[id];
+      return { workspaces, sessions, activeWorkspaceId, layouts };
     }),
 
   switchWorkspace: (id) => set({ activeWorkspaceId: id }),
@@ -149,6 +165,7 @@ export const useSessions = create<AppState>((set, get) => ({
       sessions: snap.sessions.map((s) => ({ ...s, state: "working" as SessionState })),
       counter: snap.counter,
       workspaceCounter: snap.workspaceCounter,
+      layouts: snap.layouts ?? {},
       focusId: null,
     }),
 
@@ -160,6 +177,7 @@ export const useSessions = create<AppState>((set, get) => ({
       sessions: st.sessions,
       counter: st.counter,
       workspaceCounter: st.workspaceCounter,
+      layouts: st.layouts,
     };
   },
 }));

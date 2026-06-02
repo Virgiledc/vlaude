@@ -9,6 +9,7 @@ const reset = () =>
     focusId: null,
     counter: 0,
     workspaceCounter: 1,
+    layouts: {},
   });
 
 describe("sessions store", () => {
@@ -58,7 +59,7 @@ describe("sessions store", () => {
   it("closeWorkspace removes its sessions and never closes the last workspace", () => {
     const st = useSessions.getState();
     const ws2 = st.createWorkspace("Boulot");
-    useSessions.getState().createSession("/home/v/a"); // in ws2 (active)
+    useSessions.getState().createSession("/home/v/a");
     useSessions.getState().closeWorkspace(ws2);
     expect(useSessions.getState().workspaces.map((w) => w.id)).toEqual(["ws-1"]);
     expect(useSessions.getState().sessions).toHaveLength(0);
@@ -75,5 +76,22 @@ describe("sessions store", () => {
     useSessions.getState().hydrate(snap);
     expect(useSessions.getState().sessions[0].state).toBe("working");
     expect(useSessions.getState().sessions[0].cwd).toBe("/home/v/a");
+  });
+
+  it("setLayout stores items per workspace; snapshot/hydrate round-trips layouts", () => {
+    useSessions.getState().setLayout("ws-1", [{ i: "a", x: 0, y: 0, w: 6, h: 8 }]);
+    expect(useSessions.getState().layouts["ws-1"][0].w).toBe(6);
+    const snap = useSessions.getState().snapshot();
+    expect(snap.layouts["ws-1"]).toHaveLength(1);
+    reset();
+    useSessions.getState().hydrate(snap);
+    expect(useSessions.getState().layouts["ws-1"][0].i).toBe("a");
+  });
+
+  it("closeWorkspace prunes its layout", () => {
+    const ws2 = useSessions.getState().createWorkspace("X");
+    useSessions.getState().setLayout(ws2, [{ i: "z", x: 0, y: 0, w: 4, h: 4 }]);
+    useSessions.getState().closeWorkspace(ws2);
+    expect(useSessions.getState().layouts[ws2]).toBeUndefined();
   });
 });
