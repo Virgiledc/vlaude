@@ -1,5 +1,14 @@
 import { Fragment, useEffect, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, horizontalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { useSessions } from "../store/sessions";
 import { groupByPath } from "../store/grouping";
 import { SessionTile } from "./SessionTile";
@@ -32,7 +41,9 @@ function WorkspaceCanvas({ workspaceId, onRequestClose }: { workspaceId: string 
   const focusId = useSessions((s) => s.focusId);
   const setFocus = useSessions((s) => s.setFocus);
   const removeFromCanvas = useSessions((s) => s.removeFromCanvas);
+  const reorderInZone = useSessions((s) => s.reorderInZone);
   const [fullscreenId, setFullscreenId] = useState<string | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   const groups = groupByPath(sessions, workspaceId)
     .map((g) => ({ ...g, sessions: g.sessions.filter((s) => s.openInCanvas) }))
@@ -67,28 +78,47 @@ function WorkspaceCanvas({ workspaceId, onRequestClose }: { workspaceId: string 
                 <span className="path">{g.label}</span>
                 <span className="count">{g.sessions.length}</span>
               </div>
-              <PanelGroup
-                direction="horizontal"
-                className="vl-zone-tiles"
-                autoSaveId={`vl-tiles-${workspaceId}-${g.cwd}`}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(e: DragEndEvent) => {
+                  const { active, over } = e;
+                  if (!over || active.id === over.id) return;
+                  const ids = g.sessions.map((s) => s.id);
+                  const from = ids.indexOf(String(active.id));
+                  const to = ids.indexOf(String(over.id));
+                  if (from === -1 || to === -1) return;
+                  reorderInZone(workspaceId, g.cwd, arrayMove(ids, from, to));
+                }}
               >
-                {g.sessions.map((s, ti) => (
-                  <Fragment key={s.id}>
-                    {ti > 0 && <PanelResizeHandle className="vl-rh vl-rh-h" />}
-                    <Panel id={`tile-${s.id}`} order={ti} minSize={15}>
-                      <SessionTile
-                        session={s}
-                        fullscreen={fs === s.id}
-                        focused={focusId === s.id}
-                        onFocus={() => setFocus(s.id)}
-                        onToggleFullscreen={() => setFullscreenId(fs === s.id ? null : s.id)}
-                        onRemove={() => removeFromCanvas(s.id)}
-                        onRequestClose={() => onRequestClose(s.id)}
-                      />
-                    </Panel>
-                  </Fragment>
-                ))}
-              </PanelGroup>
+                <SortableContext
+                  items={g.sessions.map((s) => s.id)}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  <PanelGroup
+                    direction="horizontal"
+                    className="vl-zone-tiles"
+                    autoSaveId={`vl-tiles-${workspaceId}-${g.cwd}`}
+                  >
+                    {g.sessions.map((s, ti) => (
+                      <Fragment key={s.id}>
+                        {ti > 0 && <PanelResizeHandle className="vl-rh vl-rh-h" />}
+                        <Panel id={`tile-${s.id}`} order={ti} minSize={15}>
+                          <SessionTile
+                            session={s}
+                            fullscreen={fs === s.id}
+                            focused={focusId === s.id}
+                            onFocus={() => setFocus(s.id)}
+                            onToggleFullscreen={() => setFullscreenId(fs === s.id ? null : s.id)}
+                            onRemove={() => removeFromCanvas(s.id)}
+                            onRequestClose={() => onRequestClose(s.id)}
+                          />
+                        </Panel>
+                      </Fragment>
+                    ))}
+                  </PanelGroup>
+                </SortableContext>
+              </DndContext>
             </div>
           </Panel>
         </Fragment>

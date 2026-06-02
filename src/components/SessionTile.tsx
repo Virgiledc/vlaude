@@ -1,3 +1,5 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { TerminalView } from "../terminal/TerminalView";
 import type { Session } from "../store/sessions";
 import "./SessionTile.css";
@@ -15,13 +17,23 @@ interface Props {
 export function SessionTile({
   session, fullscreen, focused, onFocus, onToggleFullscreen, onRemove, onRequestClose,
 }: Props) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: session.id,
+  });
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
   return (
     <div
-      className={`vl-tile${focused ? " focused" : ""}${fullscreen ? " fullscreen" : ""}`}
+      ref={setNodeRef}
+      style={style}
+      className={`vl-tile${focused ? " focused" : ""}${fullscreen ? " fullscreen" : ""}${isDragging ? " dragging" : ""}`}
       onMouseDown={onFocus}
-      style={{ display: session.openInCanvas ? "flex" : "none" }}
     >
       <div className="vl-tile-bar">
+        <span className="vl-drag" title="Déplacer" {...attributes} {...listeners}>⠿</span>
         <span className={`vl-dot ${session.state}`} />
         <span className="vl-tile-name">{session.name}</span>
         <span className="vl-tile-actions">
