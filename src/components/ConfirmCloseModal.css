@@ -1,0 +1,10 @@
+.vl-confirm {
+  width: 340px; background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: var(--r-xl); box-shadow: var(--shadow-modal); padding: 20px;
+  font-family: var(--font-ui); animation: vl-rise 160ms var(--ease) both;
+}
+.vl-confirm-title { font-size: 14px; font-weight: 600; color: var(--text-hi); }
+.vl-confirm-body { font-size: 12px; color: var(--text-mid); margin-top: 6px; line-height: 1.5; }
+.vl-confirm .vl-modal-actions .danger { background: var(--danger); color: #fff; font-weight: 600;
+  border-radius: var(--r-md); padding: 8px 16px; font-size: 12.5px; border: none; cursor: pointer; }
+.vl-confirm .vl-modal-actions .danger:hover { filter: brightness(1.08); }

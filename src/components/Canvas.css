@@ -1,0 +1,23 @@
+.vl-canvas {
+  position: relative; flex: 1; min-width: 0; height: 100%;
+  background: var(--bg-1); padding: 14px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.vl-canvas-empty {
+  margin: auto; max-width: 360px; text-align: center;
+  color: var(--text-lo); font-size: 13px; line-height: 1.6;
+}
+.vl-zone {
+  display: flex; flex-direction: column; gap: 9px;
+  border: 1px solid var(--border-subtle); border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.012); padding: 10px;
+  animation: vl-rise 240ms var(--ease) both;
+}
+.vl-zone-label { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); }
+.vl-zone-label .tick { width: 3px; height: 12px; border-radius: 2px; background: var(--accent); }
+.vl-zone-label .path { font-size: 11px; color: var(--text-mid); }
+.vl-zone-label .count {
+  font-size: 10px; color: var(--text-lo); background: var(--bg-3);
+  border-radius: 999px; padding: 1px 7px;
+}
+.vl-zone-tiles { display: flex; flex-wrap: wrap; gap: 10px; min-height: 200px; }

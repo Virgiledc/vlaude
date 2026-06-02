@@ -1,0 +1,48 @@
+@import "@fontsource/geist-sans/400.css";
+@import "@fontsource/geist-sans/500.css";
+@import "@fontsource/geist-sans/600.css";
+@import "@fontsource/geist-mono/400.css";
+@import "@fontsource/geist-mono/500.css";
+
+:root {
+  --bg-0: #0b0b0d;
+  --bg-1: #0e0e11;
+  --bg-2: #161619;
+  --bg-3: #1c1c21;
+  --bg-4: #24242b;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.10);
+  --text-hi: #ececf0;
+  --text-mid: #b6b6bd;
+  --text-lo: #6f6f78;
+  --text-dim: #55555c;
+  --accent: #e0805f;
+  --accent-soft: rgba(224, 128, 95, 0.14);
+  --accent-border: rgba(224, 128, 95, 0.45);
+  --ok: #28c840;
+  --idle: #e0a33f;
+  --off: #5a5a60;
+  --danger: #d9483f;
+  --font-ui: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-tile: 0 8px 30px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg-1);
+  color: var(--text-hi);
+  font-family: var(--font-ui);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes vl-breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes vl-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "qmd": {
+      "command": "qmd",
+      "args": ["mcp"],
+      "env": {
+        "QMD_HOME": "/mnt/c/Users/VirgileDc/Documents/virgile"
+      }
+    }
+  }
+}
