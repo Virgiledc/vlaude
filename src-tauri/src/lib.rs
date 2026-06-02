@@ -1,8 +1,10 @@
 mod pty;
 mod wslfs;
 
+use std::fs;
 use pty::manager::PtyManager;
 use tauri::ipc::Channel;
+use tauri::Manager;
 use tauri::State;
 
 #[tauri::command]
@@ -33,6 +35,27 @@ fn pty_close(state: State<PtyManager>, id: String) -> Result<(), String> {
     state.close(&id)
 }
 
+fn layout_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.join("layout.json"))
+}
+
+#[tauri::command]
+fn save_layout(app: tauri::AppHandle, data: String) -> Result<(), String> {
+    let path = layout_path(&app)?;
+    fs::write(path, data).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn load_layout(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    let path = layout_path(&app)?;
+    if !path.exists() {
+        return Ok(None);
+    }
+    fs::read_to_string(path).map(Some).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -44,7 +67,9 @@ pub fn run() {
             pty_resize,
             pty_close,
             wslfs::wsl_home,
-            wslfs::list_wsl_dirs
+            wslfs::list_wsl_dirs,
+            save_layout,
+            load_layout
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

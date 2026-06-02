@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { Canvas } from "./components/Canvas";
 import { WorkspaceTabs } from "./components/WorkspaceTabs";
 import { NewSessionDialog } from "./components/NewSessionDialog";
 import { ConfirmCloseModal } from "./components/ConfirmCloseModal";
 import { useSessions } from "./store/sessions";
+import { loadLayout, startAutoSave } from "./store/persistence";
 import "./App.css";
 
 export default function App() {
@@ -16,10 +17,22 @@ export default function App() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [closeId, setCloseId] = useState<string | null>(null);
   const [closeWsId, setCloseWsId] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    loadLayout().finally(() => {
+      setReady(true);
+      unsub = startAutoSave();
+    });
+    return () => unsub?.();
+  }, []);
 
   const closeName = closeId ? sessions.find((s) => s.id === closeId)?.name ?? null : null;
   const closeWsName = closeWsId ? workspaces.find((w) => w.id === closeWsId)?.name ?? null : null;
   const wsSessionCount = closeWsId ? sessions.filter((s) => s.workspaceId === closeWsId).length : 0;
+
+  if (!ready) return <div className="vl-app vl-booting" />;
 
   return (
     <div className="vl-app">
