@@ -34,3 +34,6 @@
 .vl-drag { cursor: grab; color: var(--text-lo); font-size: 12px; line-height: 1; user-select: none; padding-right: 2px; }
 .vl-drag:active { cursor: grabbing; }
 .vl-tile.dragging { z-index: 60; box-shadow: 0 18px 50px rgba(0,0,0,.55); border-color: var(--accent-border); }
+.vl-tile-bar { cursor: move; }
+.vl-dir-dot { width: 8px; height: 8px; border-radius: 2px; background: var(--dir-color, #888); flex: none; }
+.vl-tile-dir { font-size: 10px; color: var(--text-lo); font-family: var(--font-mono); margin-left: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }

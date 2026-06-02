@@ -1,18 +1,17 @@
-import { Fragment, useEffect, useState } from "react";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import { useEffect, useMemo } from "react";
+import ReactGridLayout from "react-grid-layout";
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
 import { useSessions } from "../store/sessions";
-import { groupByPath } from "../store/grouping";
 import { SessionTile } from "./SessionTile";
 import "./Canvas.css";
+
+const { WidthProvider } = ReactGridLayout;
+type Layout = ReactGridLayout.Layout;
+
+const Grid = WidthProvider(ReactGridLayout);
+const COLS = 12;
+const ROW_HEIGHT = 36;
 
 interface Props {
   onRequestClose: (id: string) => void;
@@ -21,6 +20,12 @@ interface Props {
 export function Canvas({ onRequestClose }: Props) {
   const workspaces = useSessions((s) => s.workspaces);
   const activeWorkspaceId = useSessions((s) => s.activeWorkspaceId);
+
+  useEffect(() => {
+    const t = setTimeout(() => window.dispatchEvent(new Event("resize")), 0);
+    return () => clearTimeout(t);
+  }, [activeWorkspaceId]);
+
   return (
     <div className="vl-canvas-root">
       {workspaces.map((w) => (
@@ -29,100 +34,73 @@ export function Canvas({ onRequestClose }: Props) {
           className="vl-workspace-layer"
           style={{ display: w.id === activeWorkspaceId ? "block" : "none" }}
         >
-          <WorkspaceCanvas workspaceId={w.id} onRequestClose={onRequestClose} />
+          <WorkspaceGrid workspaceId={w.id} onRequestClose={onRequestClose} />
         </div>
       ))}
     </div>
   );
 }
 
-function WorkspaceCanvas({ workspaceId, onRequestClose }: { workspaceId: string } & Props) {
+function WorkspaceGrid({ workspaceId, onRequestClose }: { workspaceId: string } & Props) {
   const sessions = useSessions((s) => s.sessions);
   const focusId = useSessions((s) => s.focusId);
   const setFocus = useSessions((s) => s.setFocus);
   const removeFromCanvas = useSessions((s) => s.removeFromCanvas);
-  const reorderInZone = useSessions((s) => s.reorderInZone);
-  const [fullscreenId, setFullscreenId] = useState<string | null>(null);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const storedLayout = useSessions((s) => s.layouts[workspaceId]);
+  const setLayout = useSessions((s) => s.setLayout);
 
-  const groups = groupByPath(sessions, workspaceId)
-    .map((g) => ({ ...g, sessions: g.sessions.filter((s) => s.openInCanvas) }))
-    .filter((g) => g.sessions.length > 0);
+  const visible = useMemo(
+    () => sessions.filter((s) => s.workspaceId === workspaceId && s.openInCanvas),
+    [sessions, workspaceId]
+  );
 
-  const fsValid =
-    fullscreenId !== null && sessions.some((s) => s.id === fullscreenId && s.openInCanvas);
-  const fs = fsValid ? fullscreenId : null;
-  useEffect(() => {
-    if (fullscreenId !== null && !fsValid) setFullscreenId(null);
-  }, [fullscreenId, fsValid]);
+  const layout: Layout[] = useMemo(() => {
+    const byId = new Map((storedLayout ?? []).map((it) => [it.i, it]));
+    return visible.map((s, idx) => {
+      const found = byId.get(s.id);
+      if (found) return { ...found };
+      return { i: s.id, x: (idx * 6) % COLS, y: Math.floor(idx / 2) * 8, w: 6, h: 8 };
+    });
+  }, [visible, storedLayout]);
 
-  if (groups.length === 0) {
+  if (visible.length === 0) {
     return (
-      <div className="vl-canvas vl-canvas-empty-wrap">
-        <div className="vl-canvas-empty">
-          Aucune session ouverte. Double-clique une session dans la barre latérale, ou crée-en une.
-        </div>
+      <div className="vl-canvas vl-canvas-empty">
+        Aucune session ouverte. Double-clique une session dans la barre latérale, ou crée-en une.
       </div>
     );
   }
 
   return (
-    <PanelGroup direction="vertical" className="vl-canvas" autoSaveId={`vl-zones-${workspaceId}`}>
-      {groups.map((g, zi) => (
-        <Fragment key={g.cwd}>
-          {zi > 0 && <PanelResizeHandle className="vl-rh vl-rh-v" />}
-          <Panel id={`zone-${g.cwd}`} order={zi} minSize={12} className="vl-zone-panel">
-            <div className="vl-zone">
-              <div className="vl-zone-label">
-                <span className="tick" />
-                <span className="path">{g.label}</span>
-                <span className="count">{g.sessions.length}</span>
-              </div>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={(e: DragEndEvent) => {
-                  const { active, over } = e;
-                  if (!over || active.id === over.id) return;
-                  const ids = g.sessions.map((s) => s.id);
-                  const from = ids.indexOf(String(active.id));
-                  const to = ids.indexOf(String(over.id));
-                  if (from === -1 || to === -1) return;
-                  reorderInZone(workspaceId, g.cwd, arrayMove(ids, from, to));
-                }}
-              >
-                <SortableContext
-                  items={g.sessions.map((s) => s.id)}
-                  strategy={horizontalListSortingStrategy}
-                >
-                  <PanelGroup
-                    direction="horizontal"
-                    className="vl-zone-tiles"
-                    autoSaveId={`vl-tiles-${workspaceId}-${g.cwd}`}
-                  >
-                    {g.sessions.map((s, ti) => (
-                      <Fragment key={s.id}>
-                        {ti > 0 && <PanelResizeHandle className="vl-rh vl-rh-h" />}
-                        <Panel id={`tile-${s.id}`} order={ti} minSize={15}>
-                          <SessionTile
-                            session={s}
-                            fullscreen={fs === s.id}
-                            focused={focusId === s.id}
-                            onFocus={() => setFocus(s.id)}
-                            onToggleFullscreen={() => setFullscreenId(fs === s.id ? null : s.id)}
-                            onRemove={() => removeFromCanvas(s.id)}
-                            onRequestClose={() => onRequestClose(s.id)}
-                          />
-                        </Panel>
-                      </Fragment>
-                    ))}
-                  </PanelGroup>
-                </SortableContext>
-              </DndContext>
-            </div>
-          </Panel>
-        </Fragment>
-      ))}
-    </PanelGroup>
+    <div className="vl-canvas">
+      <Grid
+        className="vl-grid"
+        layout={layout}
+        cols={COLS}
+        rowHeight={ROW_HEIGHT}
+        margin={[10, 10]}
+        draggableHandle=".vl-tile-bar"
+        draggableCancel=".vl-no-drag"
+        resizeHandles={["se"]}
+        onLayoutChange={(l: Layout[]) =>
+          setLayout(
+            workspaceId,
+            l.map((it) => ({ i: it.i, x: it.x, y: it.y, w: it.w, h: it.h }))
+          )
+        }
+      >
+        {visible.map((s) => (
+          <div key={s.id} className="vl-grid-item">
+            <SessionTile
+              session={s}
+              focused={focusId === s.id}
+              onFocus={() => setFocus(s.id)}
+              onRemove={() => removeFromCanvas(s.id)}
+              onRequestClose={() => onRequestClose(s.id)}
+            />
+          </div>
+        ))}
+      </Grid>
+    </div>
   );
 }

@@ -1,20 +1,8 @@
 .vl-canvas-root { position: relative; flex: 1; min-width: 0; height: 100%; }
 .vl-workspace-layer { position: absolute; inset: 0; }
-.vl-canvas { height: 100%; background: var(--bg-1); padding: 14px; overflow: hidden; }
-.vl-canvas-empty-wrap { display: flex; }
-.vl-canvas-empty { margin: auto; max-width: 360px; text-align: center; color: var(--text-lo); font-size: 13px; line-height: 1.6; }
-.vl-zone-panel { min-height: 0; }
-.vl-zone {
-  height: 100%; display: flex; flex-direction: column; gap: 9px;
-  border: 1px solid var(--border-subtle); border-radius: var(--r-lg);
-  background: rgba(255,255,255,.012); padding: 10px; box-sizing: border-box; overflow: hidden;
-}
-.vl-zone-label { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); flex: none; }
-.vl-zone-label .tick { width: 3px; height: 12px; border-radius: 2px; background: var(--accent); }
-.vl-zone-label .path { font-size: 11px; color: var(--text-mid); }
-.vl-zone-label .count { font-size: 10px; color: var(--text-lo); background: var(--bg-3); border-radius: 999px; padding: 1px 7px; }
-.vl-zone-tiles { flex: 1; min-height: 0; }
-.vl-rh { background: transparent; transition: background 120ms; flex: none; }
-.vl-rh-v { height: 8px; cursor: row-resize; }
-.vl-rh-h { width: 8px; cursor: col-resize; }
-.vl-rh:hover, .vl-rh[data-resize-handle-active] { background: var(--accent-border, rgba(224,128,95,.4)); }
+.vl-canvas { height: 100%; background: var(--bg-1); padding: 8px; overflow-y: auto; box-sizing: border-box; }
+.vl-canvas-empty { display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-lo); font-size: 13px; line-height: 1.6; padding: 0 24px; }
+.vl-grid-item { height: 100%; }
+.react-grid-item.react-grid-placeholder { background: var(--accent, #e0805f); opacity: 0.16; border-radius: var(--r-lg); }
+.react-grid-item.react-draggable-dragging { z-index: 60; }
+.react-grid-item > .react-resizable-handle { z-index: 6; }
