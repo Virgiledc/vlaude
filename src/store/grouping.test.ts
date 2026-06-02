@@ -1,27 +1,41 @@
-import { describe, it, expect } from "vitest";
-import { groupByPath, prettyCwd } from "./grouping";
+import { describe, expect, it } from "vitest";
+import { groupByPath } from "./grouping";
 import type { Session } from "./sessions";
 
-const s = (id: string, cwd: string): Session => ({
-  id, name: id, cwd, status: "running", openInCanvas: true,
+const mk = (over: Partial<Session>): Session => ({
+  id: over.id ?? "x",
+  name: over.name ?? "n",
+  cwd: over.cwd ?? "/home/v/a",
+  workspaceId: over.workspaceId ?? "ws-1",
+  order: over.order ?? 0,
+  state: "working",
+  openInCanvas: true,
 });
 
 describe("groupByPath", () => {
-  it("groups sessions by cwd, preserving creation order of groups", () => {
-    const groups = groupByPath([
-      s("a", "/home/v/dt/threadscrap"),
-      s("b", "/home/v/dt/saas"),
-      s("c", "/home/v/dt/threadscrap"),
-    ]);
-    expect(groups.map((g) => g.cwd)).toEqual([
-      "/home/v/dt/threadscrap",
-      "/home/v/dt/saas",
-    ]);
-    expect(groups[0].sessions.map((x) => x.id)).toEqual(["a", "c"]);
+  it("only includes sessions of the given workspace", () => {
+    const groups = groupByPath(
+      [mk({ id: "1", cwd: "/home/v/a", workspaceId: "ws-1" }), mk({ id: "2", cwd: "/home/v/a", workspaceId: "ws-2" })],
+      "ws-1"
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0].sessions.map((s) => s.id)).toEqual(["1"]);
   });
 
-  it("labels with ~ for home", () => {
-    expect(prettyCwd("/home/virgile/dt/threadscrap")).toBe("~/dt/threadscrap");
-    expect(prettyCwd("/srv/app")).toBe("/srv/app");
+  it("sorts sessions within a zone by order", () => {
+    const groups = groupByPath(
+      [mk({ id: "a", order: 2 }), mk({ id: "b", order: 0 }), mk({ id: "c", order: 1 })],
+      "ws-1"
+    );
+    expect(groups[0].sessions.map((s) => s.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("keeps first-seen cwd order between zones and prettifies the label", () => {
+    const groups = groupByPath(
+      [mk({ id: "1", cwd: "/home/v/b" }), mk({ id: "2", cwd: "/home/v/a" })],
+      "ws-1"
+    );
+    expect(groups.map((g) => g.cwd)).toEqual(["/home/v/b", "/home/v/a"]);
+    expect(groups[0].label).toBe("~/b");
   });
 });

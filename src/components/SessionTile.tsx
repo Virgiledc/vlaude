@@ -22,7 +22,7 @@ export function SessionTile({
       style={{ display: session.openInCanvas ? "flex" : "none" }}
     >
       <div className="vl-tile-bar">
-        <span className={`vl-dot ${session.status}`} />
+        <span className={`vl-dot ${session.state}`} />
         <span className="vl-tile-name">{session.name}</span>
         <span className="vl-tile-actions">
           <button title="Plein écran" className="full" onClick={(e) => { e.stopPropagation(); onToggleFullscreen(); }}>⛶</button>

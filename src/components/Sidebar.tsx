@@ -11,7 +11,8 @@ export function Sidebar({ onNewSession }: Props) {
   const focusId = useSessions((s) => s.focusId);
   const setFocus = useSessions((s) => s.setFocus);
   const openInCanvas = useSessions((s) => s.openInCanvas);
-  const groups = groupByPath(sessions);
+  const activeWorkspaceId = useSessions((s) => s.activeWorkspaceId);
+  const groups = groupByPath(sessions, activeWorkspaceId);
 
   return (
     <div className="vl-sidebar">
@@ -27,7 +28,7 @@ export function Sidebar({ onNewSession }: Props) {
                 onClick={() => setFocus(s.id)}
                 onDoubleClick={() => openInCanvas(s.id)}
               >
-                <span className={`vl-dot ${s.status}`} />
+                <span className={`vl-dot ${s.state}`} />
                 <span className="vl-side-name">{s.name}</span>
                 {s.openInCanvas && <span className="vl-side-open">●</span>}
               </div>

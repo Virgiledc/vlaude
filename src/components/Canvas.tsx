@@ -23,7 +23,8 @@ export function Canvas({ onRequestClose }: Props) {
     if (fullscreenId !== null && !fsValid) setFullscreenId(null);
   }, [fullscreenId, fsValid]);
 
-  const groups = groupByPath(sessions);
+  const activeWorkspaceId = useSessions((s) => s.activeWorkspaceId);
+  const groups = groupByPath(sessions, activeWorkspaceId);
   const anyOpen = sessions.some((s) => s.openInCanvas);
 
   return (

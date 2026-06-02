@@ -10,15 +10,20 @@ export function prettyCwd(cwd: string): string {
   return cwd.replace(/^\/home\/[^/]+/, "~");
 }
 
-export function groupByPath(sessions: Session[]): PathGroup[] {
+export function groupByPath(sessions: Session[], workspaceId: string): PathGroup[] {
   const order: string[] = [];
   const map = new Map<string, Session[]>();
   for (const sess of sessions) {
+    if (sess.workspaceId !== workspaceId) continue;
     if (!map.has(sess.cwd)) {
       map.set(sess.cwd, []);
       order.push(sess.cwd);
     }
     map.get(sess.cwd)!.push(sess);
   }
-  return order.map((cwd) => ({ cwd, label: prettyCwd(cwd), sessions: map.get(cwd)! }));
+  return order.map((cwd) => ({
+    cwd,
+    label: prettyCwd(cwd),
+    sessions: map.get(cwd)!.slice().sort((a, b) => a.order - b.order),
+  }));
 }
