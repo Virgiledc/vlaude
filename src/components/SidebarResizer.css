@@ -1,0 +1,35 @@
+.vl-resizer {
+  position: relative;
+  z-index: 20;
+  width: 0;
+  flex: none;
+  align-self: stretch;
+}
+.vl-resizer-grip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  width: 7px;
+  cursor: col-resize;
+}
+.vl-resizer-grip::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 2px;
+  background: transparent;
+  transition: background 140ms var(--ease);
+}
+.vl-resizer-grip:hover::after {
+  background: var(--accent-border);
+}
+body.vl-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+body.vl-resizing .vl-resizer-grip::after {
+  background: var(--accent);
+}

@@ -9,7 +9,7 @@ use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize}
 use tauri::ipc::Channel;
 
 use super::coalesce::Coalescer;
-use super::wsl::build_wsl_argv;
+use super::wsl::{build_wsl_argv, SessionKind};
 
 struct PtySession {
     master: Box<dyn MasterPty + Send>,
@@ -31,6 +31,7 @@ impl PtyManager {
         cwd: String,
         cols: u16,
         rows: u16,
+        kind: SessionKind,
         on_data: Channel<Vec<u8>>,
     ) -> Result<(), String> {
         let pty_system = native_pty_system();
@@ -39,7 +40,7 @@ impl PtyManager {
             .map_err(|e| e.to_string())?;
 
         let mut cmd = CommandBuilder::new("wsl.exe");
-        for arg in build_wsl_argv(distro.as_deref(), &cwd) {
+        for arg in build_wsl_argv(distro.as_deref(), &cwd, kind) {
             cmd.arg(arg);
         }
         let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;

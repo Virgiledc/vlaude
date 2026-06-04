@@ -7,10 +7,9 @@
   animation: vl-rise 220ms var(--ease) both;
 }
 .vl-tile.focused { border-color: var(--accent-border); }
-.vl-tile.fullscreen {
-  position: absolute; inset: 12px; z-index: 50; flex: none;
-  min-height: 0; transform: none;
-}
+.vl-tile-body { position: relative; flex: 1 1 auto; min-height: 0; }
+.vl-term-layer { position: absolute; inset: 0; }
+.vl-term-layer[data-active="false"] { visibility: hidden; pointer-events: none; }
 .vl-tile-bar {
   display: flex; align-items: center; gap: 9px; height: 30px; padding: 0 11px;
   background: var(--bg-3); border-bottom: 1px solid var(--border-subtle);
@@ -25,8 +24,12 @@
 }
 .vl-tile-actions button:hover { background: var(--bg-4); }
 .vl-tile-actions .full:hover { color: var(--text-hi); }
+.vl-tile-actions .full.active { color: var(--accent); }
 .vl-tile-actions .rem:hover { color: var(--idle); }
 .vl-tile-actions .cls:hover { color: var(--danger); }
+.vl-tile-actions .cmd svg { width: 14px; height: 14px; display: block; }
+.vl-tile-actions .cmd:hover { color: var(--accent); }
+.vl-tile-actions .cmd.active { color: var(--accent); background: var(--bg-4); }
 .vl-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
 .vl-dot.running { background: var(--ok); animation: vl-breathe 2.4s var(--ease) infinite; }
 .vl-dot.idle { background: var(--idle); }

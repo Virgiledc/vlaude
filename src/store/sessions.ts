@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { clampSidebarWidth, SIDEBAR_WIDTH_DEFAULT } from "./sidebar";
 
 export type SessionState = "working" | "waiting" | "attention" | "exited";
 
@@ -32,18 +33,25 @@ export interface PersistedSnapshot {
   counter: number;
   workspaceCounter: number;
   layouts: Record<string, GridItem[]>;
+  sidebarWidth: number;
 }
 
 interface AppState extends PersistedSnapshot {
   focusId: string | null;
+  fullscreenId: string | null;
+  views: Record<string, "claude" | "term">;
   createSession: (cwd: string, name?: string) => string;
   openInCanvas: (id: string) => void;
   removeFromCanvas: (id: string) => void;
   closeSession: (id: string) => void;
   setFocus: (id: string) => void;
+  toggleFullscreen: (id: string) => void;
+  exitFullscreen: () => void;
+  toggleView: (id: string) => void;
   setSessionState: (id: string, state: SessionState) => void;
   reorderInZone: (workspaceId: string, cwd: string, orderedIds: string[]) => void;
   setLayout: (workspaceId: string, items: GridItem[]) => void;
+  setSidebarWidth: (w: number) => void;
   createWorkspace: (name?: string) => string;
   renameWorkspace: (id: string, name: string) => void;
   closeWorkspace: (id: string) => void;
@@ -65,9 +73,12 @@ export const useSessions = create<AppState>((set, get) => ({
   activeWorkspaceId: FIRST_WS,
   sessions: [],
   focusId: null,
+  fullscreenId: null,
+  views: {},
   counter: 0,
   workspaceCounter: 1,
   layouts: {},
+  sidebarWidth: SIDEBAR_WIDTH_DEFAULT,
 
   createSession: (cwd, name) => {
     const id = newId();
@@ -100,15 +111,32 @@ export const useSessions = create<AppState>((set, get) => ({
   removeFromCanvas: (id) =>
     set((st) => ({
       sessions: st.sessions.map((s) => (s.id === id ? { ...s, openInCanvas: false } : s)),
+      fullscreenId: st.fullscreenId === id ? null : st.fullscreenId,
     })),
 
   closeSession: (id) =>
     set((st) => ({
       sessions: st.sessions.filter((s) => s.id !== id),
       focusId: st.focusId === id ? null : st.focusId,
+      fullscreenId: st.fullscreenId === id ? null : st.fullscreenId,
     })),
 
   setFocus: (id) => set({ focusId: id }),
+
+  toggleFullscreen: (id) =>
+    set((st) => {
+      if (st.fullscreenId === id) return { fullscreenId: null };
+      const target = st.sessions.find((s) => s.id === id);
+      if (!target || !target.openInCanvas) return { fullscreenId: null };
+      return { fullscreenId: id, focusId: id };
+    }),
+
+  exitFullscreen: () => set({ fullscreenId: null }),
+
+  toggleView: (id) =>
+    set((st) => ({
+      views: { ...st.views, [id]: st.views[id] === "term" ? "claude" : "term" },
+    })),
 
   setSessionState: (id, state) =>
     set((st) => ({
@@ -130,12 +158,14 @@ export const useSessions = create<AppState>((set, get) => ({
   setLayout: (workspaceId, items) =>
     set((st) => ({ layouts: { ...st.layouts, [workspaceId]: items } })),
 
+  setSidebarWidth: (w) => set({ sidebarWidth: clampSidebarWidth(w) }),
+
   createWorkspace: (name) => {
     const id = newId();
     set((st) => {
       const workspaceCounter = st.workspaceCounter + 1;
       const ws: Workspace = { id, name: name?.trim() || `Workspace ${workspaceCounter}` };
-      return { workspaces: [...st.workspaces, ws], activeWorkspaceId: id, workspaceCounter };
+      return { workspaces: [...st.workspaces, ws], activeWorkspaceId: id, workspaceCounter, fullscreenId: null };
     });
     return id;
   },
@@ -153,10 +183,12 @@ export const useSessions = create<AppState>((set, get) => ({
       const activeWorkspaceId = st.activeWorkspaceId === id ? workspaces[0].id : st.activeWorkspaceId;
       const layouts = { ...st.layouts };
       delete layouts[id];
-      return { workspaces, sessions, activeWorkspaceId, layouts };
+      const fullscreenId =
+        st.fullscreenId && sessions.some((s) => s.id === st.fullscreenId) ? st.fullscreenId : null;
+      return { workspaces, sessions, activeWorkspaceId, layouts, fullscreenId };
     }),
 
-  switchWorkspace: (id) => set({ activeWorkspaceId: id }),
+  switchWorkspace: (id) => set({ activeWorkspaceId: id, fullscreenId: null }),
 
   hydrate: (snap) =>
     set({
@@ -166,7 +198,9 @@ export const useSessions = create<AppState>((set, get) => ({
       counter: snap.counter,
       workspaceCounter: snap.workspaceCounter,
       layouts: snap.layouts ?? {},
+      sidebarWidth: clampSidebarWidth(snap.sidebarWidth ?? SIDEBAR_WIDTH_DEFAULT),
       focusId: null,
+      fullscreenId: null,
     }),
 
   snapshot: () => {
@@ -178,6 +212,7 @@ export const useSessions = create<AppState>((set, get) => ({
       counter: st.counter,
       workspaceCounter: st.workspaceCounter,
       layouts: st.layouts,
+      sidebarWidth: st.sidebarWidth,
     };
   },
 }));

@@ -11,14 +11,15 @@ export function createPty(
   cwd: string,
   cols: number,
   rows: number,
-  onData: (bytes: Uint8Array) => void
+  onData: (bytes: Uint8Array) => void,
+  kind: "claude" | "term" = "claude"
 ): PtyHandle {
   const channel = new Channel<Uint8Array | number[]>();
   channel.onmessage = (msg) => {
     onData(msg instanceof Uint8Array ? msg : new Uint8Array(msg));
   };
 
-  invoke("pty_spawn", { id, distro: null, cwd, cols, rows, onData: channel }).catch(
+  invoke("pty_spawn", { id, distro: null, cwd, cols, rows, kind, onData: channel }).catch(
     (e) => console.error("pty_spawn failed", e)
   );
 

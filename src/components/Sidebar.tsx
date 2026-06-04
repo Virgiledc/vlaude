@@ -37,11 +37,6 @@ export function Sidebar({ onNewSession }: Props) {
         ))}
       </div>
       <button className="vl-new" onClick={onNewSession}>+ Nouvelle session</button>
-      <div className="vl-side-future">
-        <div className="vl-future-label">À VENIR</div>
-        <div className="vl-future-row">⌘ Macros</div>
-        <div className="vl-future-row">⚙ Réglages</div>
-      </div>
     </div>
   );
 }

@@ -6,3 +6,21 @@
 .react-grid-item.react-grid-placeholder { background: var(--accent, #e0805f); opacity: 0.16; border-radius: var(--r-lg); }
 .react-grid-item.react-draggable-dragging { z-index: 60; }
 .react-grid-item > .react-resizable-handle { z-index: 6; }
+
+/* Plein écran (Ctrl+E) — la tuile ciblée couvre la zone canvas, sans démontage ni reparentage DOM.
+   .vl-canvas-root porte un transform pendant le plein écran → il devient le bloc conteneur du
+   position:fixed, ce qui restreint la couverture à la zone canvas (sidebar + onglets restent visibles).
+   On écrase le transform/size/position inline posés par react-grid-layout sur le .vl-grid-item ciblé. */
+.vl-canvas-root.has-fullscreen { transform: translateZ(0); }
+.vl-canvas.has-fullscreen { overflow: hidden; }
+.vl-grid-item.is-fullscreen {
+  position: fixed !important;
+  inset: 8px !important;
+  transform: none !important;
+  width: auto !important;
+  height: auto !important;
+  z-index: 70;
+  animation: vl-fs-in 140ms var(--ease) both;
+}
+.vl-grid-item.is-fullscreen > .react-resizable-handle { display: none; }
+@keyframes vl-fs-in { from { opacity: 0.55; } to { opacity: 1; } }

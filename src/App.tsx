@@ -4,8 +4,11 @@ import { Canvas } from "./components/Canvas";
 import { WorkspaceTabs } from "./components/WorkspaceTabs";
 import { NewSessionDialog } from "./components/NewSessionDialog";
 import { ConfirmCloseModal } from "./components/ConfirmCloseModal";
+import { PluginsPanel } from "./components/PluginsPanel";
+import { SidebarResizer } from "./components/SidebarResizer";
 import { useSessions } from "./store/sessions";
 import { loadLayout, startAutoSave } from "./store/persistence";
+import { useImageDrop } from "./terminal/useImageDrop";
 import "./App.css";
 
 export default function App() {
@@ -14,10 +17,13 @@ export default function App() {
   const closeWorkspace = useSessions((s) => s.closeWorkspace);
   const sessions = useSessions((s) => s.sessions);
   const workspaces = useSessions((s) => s.workspaces);
+  const sidebarWidth = useSessions((s) => s.sidebarWidth);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [closeId, setCloseId] = useState<string | null>(null);
   const [closeWsId, setCloseWsId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+
+  useImageDrop();
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -28,6 +34,10 @@ export default function App() {
     return () => unsub?.();
   }, []);
 
+  useEffect(() => {
+    document.documentElement.style.setProperty("--vl-side-w", `${sidebarWidth}px`);
+  }, [sidebarWidth]);
+
   const closeName = closeId ? sessions.find((s) => s.id === closeId)?.name ?? null : null;
   const closeWsName = closeWsId ? workspaces.find((w) => w.id === closeWsId)?.name ?? null : null;
   const wsSessionCount = closeWsId ? sessions.filter((s) => s.workspaceId === closeWsId).length : 0;
@@ -36,7 +46,11 @@ export default function App() {
 
   return (
     <div className="vl-app">
-      <Sidebar onNewSession={() => setDialogOpen(true)} />
+      <div className="vl-left">
+        <Sidebar onNewSession={() => setDialogOpen(true)} />
+        <PluginsPanel />
+      </div>
+      <SidebarResizer />
       <div className="vl-main">
         <WorkspaceTabs onRequestCloseWorkspace={setCloseWsId} />
         <Canvas onRequestClose={setCloseId} />

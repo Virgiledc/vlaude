@@ -7,6 +7,7 @@ const reset = () =>
     activeWorkspaceId: "ws-1",
     sessions: [],
     focusId: null,
+    fullscreenId: null,
     counter: 0,
     workspaceCounter: 1,
     layouts: {},
@@ -93,5 +94,50 @@ describe("sessions store", () => {
     useSessions.getState().setLayout(ws2, [{ i: "z", x: 0, y: 0, w: 4, h: 4 }]);
     useSessions.getState().closeWorkspace(ws2);
     expect(useSessions.getState().layouts[ws2]).toBeUndefined();
+  });
+
+  it("toggleFullscreen sets then clears fullscreenId for a visible session", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    useSessions.getState().toggleFullscreen(a);
+    expect(useSessions.getState().fullscreenId).toBe(a);
+    expect(useSessions.getState().focusId).toBe(a);
+    useSessions.getState().toggleFullscreen(a);
+    expect(useSessions.getState().fullscreenId).toBeNull();
+  });
+
+  it("toggleFullscreen is a no-op for a session not in the canvas", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    useSessions.getState().removeFromCanvas(a);
+    useSessions.getState().toggleFullscreen(a);
+    expect(useSessions.getState().fullscreenId).toBeNull();
+  });
+
+  it("closeSession clears fullscreenId when the fullscreen session is closed", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    useSessions.getState().toggleFullscreen(a);
+    useSessions.getState().closeSession(a);
+    expect(useSessions.getState().fullscreenId).toBeNull();
+  });
+
+  it("removeFromCanvas clears fullscreenId for that session", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    useSessions.getState().toggleFullscreen(a);
+    useSessions.getState().removeFromCanvas(a);
+    expect(useSessions.getState().fullscreenId).toBeNull();
+  });
+
+  it("switchWorkspace and createWorkspace exit fullscreen", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    useSessions.getState().toggleFullscreen(a);
+    expect(useSessions.getState().fullscreenId).toBe(a);
+    useSessions.getState().createWorkspace("X");
+    expect(useSessions.getState().fullscreenId).toBeNull();
+  });
+
+  it("fullscreenId is ephemeral: never part of the persisted snapshot", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    useSessions.getState().toggleFullscreen(a);
+    const snap = useSessions.getState().snapshot();
+    expect("fullscreenId" in snap).toBe(false);
   });
 });
