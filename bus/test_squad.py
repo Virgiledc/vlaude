@@ -32,6 +32,20 @@ class InitSquadTest(unittest.TestCase):
         self.assertEqual(m["status"], "alive")
         self.assertEqual(m["last_seen"], 100)
 
+    def test_init_replaces_previous_squad(self):
+        conn = fresh()
+        squad.init_squad(conn, "sq1", "tokP1", "/r", now=100)
+        squad.add_member(conn, "tokF1", "sq1", "fils", "fils-1", "/r", now=100)
+        squad.post_tasks(conn, "tokP1",
+                         tasks=[{"title": "Old", "description": "d", "owned_paths": ["a/**"]}],
+                         all_files=[], now=100)
+        squad.init_squad(conn, "sq2", "tokP2", "/r", now=200)
+        v = squad.view(conn, now=200)
+        self.assertEqual(v["squad"]["squad_id"], "sq2")
+        self.assertEqual([m["name"] for m in v["members"]], ["pere"])
+        self.assertEqual(v["tasks"], [])
+        self.assertIsNone(squad.resolve(conn, "tokP1"))
+
 
 class MemberTest(unittest.TestCase):
     def test_add_member_and_resolve(self):
@@ -297,21 +311,22 @@ class CliTest(unittest.TestCase):
 
 class CrossSquadTest(unittest.TestCase):
     def setUp(self):
-        self.conn = fresh()
-        squad.init_squad(self.conn, "sqA", "tokPA", "/repoA", now=100)
-        squad.add_member(self.conn, "tokFA", "sqA", "fils", "fils-a", "/repoA", now=100)
-        squad.init_squad(self.conn, "sqB", "tokPB", "/repoB", now=100)
-        squad.post_tasks(self.conn, "tokPA",
+        self.conn_a = fresh()
+        squad.init_squad(self.conn_a, "sqA", "tokPA", "/repoA", now=100)
+        squad.add_member(self.conn_a, "tokFA", "sqA", "fils", "fils-a", "/repoA", now=100)
+        self.conn_b = fresh()
+        squad.init_squad(self.conn_b, "sqB", "tokPB", "/repoB", now=100)
+        squad.post_tasks(self.conn_a, "tokPA",
                          tasks=[{"title": "a", "description": "", "owned_paths": ["a/**"]}],
                          all_files=[], now=120)
-        self.task = squad.claim(self.conn, "tokFA", now=130)
-        squad.submit(self.conn, "tokFA", self.task["id"], now=140)
+        self.task = squad.claim(self.conn_a, "tokFA", now=130)
+        squad.submit(self.conn_a, "tokFA", self.task["id"], now=140)
 
     def test_pere_of_other_squad_cannot_verify(self):
         with self.assertRaises(squad.NotAllowed):
-            squad.verify(self.conn, "tokPB", self.task["id"], now=150)
-        squad.verify(self.conn, "tokPA", self.task["id"], now=151)
-        row = self.conn.execute("SELECT status FROM task WHERE id=?", (self.task["id"],)).fetchone()
+            squad.verify(self.conn_a, "tokPB", self.task["id"], now=150)
+        squad.verify(self.conn_a, "tokPA", self.task["id"], now=151)
+        row = self.conn_a.execute("SELECT status FROM task WHERE id=?", (self.task["id"],)).fetchone()
         self.assertEqual(row["status"], "verified")
 
 
@@ -371,6 +386,55 @@ class ClaimAtomicityTest(unittest.TestCase):
         ids = [r for r in results if r is not None]
         self.assertEqual(len(ids), len(set(ids)))
         self.assertEqual(len(ids), N)
+
+
+class ViewTest(unittest.TestCase):
+    def test_view_is_readonly_resolves_names_and_derives_liveness(self):
+        conn = fresh()
+        squad.init_squad(conn, "sq1", "tokP", "/r", now=100)
+        squad.add_member(conn, "tokF1", "sq1", "fils", "fils-1", "/r", now=100)
+        squad.post_tasks(conn, "tokP",
+                         tasks=[{"title": "API", "description": "d", "owned_paths": ["src/**"]}],
+                         all_files=[], now=100)
+        squad.claim(conn, "tokF1", now=100)
+
+        v = squad.view(conn, now=999)
+        last_seen = conn.execute("SELECT last_seen FROM member WHERE token='tokF1'").fetchone()[0]
+        self.assertEqual(last_seen, 100)
+
+        self.assertEqual(v["squad"]["squad_id"], "sq1")
+        self.assertEqual({m["name"] for m in v["members"]}, {"pere", "fils-1"})
+        f1 = next(m for m in v["members"] if m["name"] == "fils-1")
+        self.assertFalse(f1["alive"])
+        self.assertEqual(f1["last_seen"], 100)
+        t = v["tasks"][0]
+        self.assertEqual(t["status"], "claimed")
+        self.assertEqual(t["claimed_by"], "fils-1")
+        self.assertEqual(t["owned_paths"], ["src/**"])
+
+
+class CliLifecycleTest(unittest.TestCase):
+    def run_cli(self, db, args, now):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = squad.main(["--db", db] + args, now=now)
+        return code, _json.loads(buf.getvalue())
+
+    def test_init_add_member_view_via_cli(self):
+        db = os.path.join(tempfile.mkdtemp(), "squad.db")
+
+        code, out = self.run_cli(db, ["init", "--squad-id", "sq1", "--pere-token", "tokP", "--cwd", "/r"], now=100)
+        self.assertEqual(code, 0)
+        self.assertTrue(out["ok"])
+
+        code, _ = self.run_cli(db, ["add-member", "--member-token", "tokF1", "--squad-id", "sq1",
+                                    "--role", "fils", "--name", "fils-1", "--cwd", "/r"], now=100)
+        self.assertEqual(code, 0)
+
+        code, out = self.run_cli(db, ["view"], now=100)
+        self.assertEqual(code, 0)
+        self.assertEqual(out["squad"]["squad_id"], "sq1")
+        self.assertEqual({m["name"] for m in out["members"]}, {"pere", "fils-1"})
 
 
 if __name__ == "__main__":

@@ -20,7 +20,9 @@ Raccourci :
 squad() { local c="$1"; shift; python3 "$VLAUDE_SQUAD_PY" --db "$VLAUDE_SQUAD_DB" "$c" --token "$VLAUDE_SQUAD_TOKEN" "$@"; }
 ```
 
-Regarde tes fils : `squad members` (chacun avec `alive: true/false`).
+## Démarrage (obligatoire, immédiat)
+
+Définis le raccourci ci-dessus puis lance tout de suite `squad members` (tes fils, chacun avec `alive: true/false`). Ce premier appel authentifié est ton signal de présence : Vlaude n'affiche ton rôle comme actif qu'après l'avoir vu sur le bus, et réinjecte `/squad-pere` s'il ne vient pas.
 
 ## Étape 1 — Découper (ton jugement, c'est le cœur)
 
@@ -36,13 +38,14 @@ squad post-tasks --json '[{"title":"...","description":"...","owned_paths":["src
                           {"title":"...","description":"...","owned_paths":["src/ui/**"]}]'
 ```
 
-La réponse contient `overlaps` : si elle n'est **pas** vide, deux périmètres se chevauchent → **re-découpe** avant de laisser les fils partir. Annonce-le à l'utilisateur pour qu'il valide le découpage d'un coup d'œil.
+⚠️ Poster des lots déclenche le **départ immédiat des fils** : Vlaude leur injecte `/squad-fils` dès qu'un lot `todo` apparaît sur le tableau. Ne poste que des lots prêts à être pris. Si la réponse contient des `overlaps` non vides, deux périmètres se chevauchent → re-découpe **immédiatement** (des fils sont peut-être déjà en train de claim) et annonce-le à l'utilisateur.
 
 ## Étape 2 — Surveiller
 
 - `squad list` → l'état de chaque lot (`todo` / `claimed` / `submitted` / `verified`).
 - `squad inbox` → questions des fils ET notifications « lot ré-ouvert » (un fils est tombé, son lot est revenu dans la pile — vérifie l'état des fichiers de son périmètre, il a pu coder à moitié).
 - Réponds aux fils bloqués : `squad msg --to <nom> --body "..."`.
+- Vlaude surveille aussi le tableau : quand des lots passent en `submitted`, il t'envoie automatiquement une relance `[Vlaude] Lot(s) soumis : #…` dans ce terminal (une fois par lot, plus un rappel si ça stagne). À réception : `squad list`, build+tests sur le périmètre, puis `squad verify --task <id>` si c'est bon — sinon message au fils responsable.
 
 ## Étape 3 — Intégrer (PAS un merge git)
 
@@ -57,4 +60,4 @@ Tous les fils travaillent dans **le même working tree** (option A, pas de workt
 
 - Un lot `submitted` n'est **pas** « fait » : `submitted` = le fils dit avoir fini ; `verified` = toi tu as constaté que build/tests passent. Ne `verify` que sur preuve.
 - Tu ne peux poster des lots et vérifier que **dans ta propre escouade** (le bus le garantit par ton token).
-- Si tu dois ajouter un fils en cours de route, c'est l'utilisateur qui tire un nouveau lien dans Vlaude — toi, tu re-découpes/postes simplement de nouveaux lots.
+- Si tu dois ajouter un fils en cours de route, c'est l'utilisateur qui l'ajoute dans Vlaude ; Vlaude lui injecte son rôle automatiquement dès qu'il reste des lots `todo` — toi, tu re-découpes/postes simplement de nouveaux lots.

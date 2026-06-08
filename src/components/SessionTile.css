@@ -30,6 +30,14 @@
 .vl-tile-actions .cmd svg { width: 14px; height: 14px; display: block; }
 .vl-tile-actions .cmd:hover { color: var(--accent); }
 .vl-tile-actions .cmd.active { color: var(--accent); background: var(--bg-4); }
+.vl-tile-actions .cmd.pending { color: var(--idle); animation: vl-breathe 2.4s var(--ease) infinite; }
+.vl-tile-actions .cmd.failed { color: var(--danger); }
+.vl-tile-actions .cmd.rec { color: var(--danger); animation: vl-breathe 2.4s var(--ease) infinite; }
+.vl-tile-actions .cmd.rec:hover { color: var(--danger); }
+.vl-tile-actions .cmd.busy { color: var(--idle); animation: vl-breathe 2.4s var(--ease) infinite; }
+.vl-tile-actions .cmd.busy:hover { color: var(--idle); }
+.vl-tile-actions button:disabled { cursor: default; }
+.vl-tile-actions button:disabled:hover { background: none; color: var(--text-lo); }
 .vl-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
 .vl-dot.running { background: var(--ok); animation: vl-breathe 2.4s var(--ease) infinite; }
 .vl-dot.idle { background: var(--idle); }

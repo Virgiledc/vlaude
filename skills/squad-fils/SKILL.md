@@ -22,13 +22,17 @@ squad() { local c="$1"; shift; python3 "$VLAUDE_SQUAD_PY" --db "$VLAUDE_SQUAD_DB
 
 Toutes les commandes renvoient du JSON sur stdout.
 
+## Démarrage (obligatoire, immédiat)
+
+Définis le raccourci ci-dessus puis lance tout de suite `squad ping`. Ce premier appel authentifié est ton signal de présence : Vlaude n'affiche ton rôle comme actif qu'après l'avoir vu sur le bus, et réinjecte `/squad-fils` s'il ne vient pas.
+
 ## Ta boucle de travail
 
 Répète jusqu'à ce qu'il n'y ait plus de lot :
 
 1. **Prends un lot** : `squad claim`
    - Réponse = le lot (`id`, `title`, `description`, `owned_paths`) OU `{"result": "no-task"}`.
-   - Si `no-task` : vérifie ta boîte (`squad inbox`) ; s'il n'y a rien et que le tableau est vide (`squad list`), ton travail est fini — dis-le et arrête-toi.
+   - Si `no-task` : lis ta boîte (`squad inbox`) puis regarde le tableau (`squad list`). S'il reste des lots non `verified` ou si le tableau est vide, le père découpe ou intègre encore : attends (`sleep 30`) puis retente `squad claim`. Après ~20 tentatives vides d'affilée, signale-le et arrête-toi. Si tous les lots sont `verified`, ton travail est fini — dis-le et arrête-toi.
 2. **Code le lot**, **strictement dans son périmètre** (`owned_paths`, des globs relatifs au repo). Ne touche **aucun fichier hors de ton périmètre**.
 3. **Soumets** : `squad submit --task <id>` (passe le lot en `submitted` ; c'est le père qui le passera `verified` après build/tests).
 4. Recommence à l'étape 1.

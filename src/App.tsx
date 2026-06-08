@@ -9,6 +9,9 @@ import { SidebarResizer } from "./components/SidebarResizer";
 import { useSessions } from "./store/sessions";
 import { loadLayout, startAutoSave } from "./store/persistence";
 import { useImageDrop } from "./terminal/useImageDrop";
+import { useDictationEvents } from "./terminal/useDictationEvents";
+import { SquadPanel } from "./components/SquadPanel";
+import { useSquad } from "./store/squad";
 import "./App.css";
 
 export default function App() {
@@ -18,12 +21,14 @@ export default function App() {
   const sessions = useSessions((s) => s.sessions);
   const workspaces = useSessions((s) => s.workspaces);
   const sidebarWidth = useSessions((s) => s.sidebarWidth);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const createSquad = useSquad((s) => s.createSquad);
+  const [dialogMode, setDialogMode] = useState<null | "session" | "squad">(null);
   const [closeId, setCloseId] = useState<string | null>(null);
   const [closeWsId, setCloseWsId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
   useImageDrop();
+  useDictationEvents();
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -47,7 +52,7 @@ export default function App() {
   return (
     <div className="vl-app">
       <div className="vl-left">
-        <Sidebar onNewSession={() => setDialogOpen(true)} />
+        <Sidebar onNewSession={() => setDialogMode("session")} onNewSquad={() => setDialogMode("squad")} />
         <PluginsPanel />
       </div>
       <SidebarResizer />
@@ -55,10 +60,12 @@ export default function App() {
         <WorkspaceTabs onRequestCloseWorkspace={setCloseWsId} />
         <Canvas onRequestClose={setCloseId} />
       </div>
+      <SquadPanel />
       <NewSessionDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onCreate={(cwd, name) => createSession(cwd, name)}
+        open={dialogMode !== null}
+        mode={dialogMode ?? "session"}
+        onClose={() => setDialogMode(null)}
+        onCreate={(cwd, name) => { if (dialogMode === "squad") createSquad(cwd, name); else createSession(cwd, name); }}
       />
       <ConfirmCloseModal
         name={closeName}

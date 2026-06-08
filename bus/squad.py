@@ -59,6 +59,10 @@ def init_db(conn):
 
 
 def init_squad(conn, squad_id, pere_token, cwd, now):
+    conn.execute("DELETE FROM message")
+    conn.execute("DELETE FROM task")
+    conn.execute("DELETE FROM member")
+    conn.execute("DELETE FROM squad")
     conn.execute(
         "INSERT INTO squad (squad_id, pere_token, cwd, created_at) VALUES (?, ?, ?, ?)",
         (squad_id, pere_token, cwd, now),
@@ -286,6 +290,31 @@ def members(conn, token, now):
              "alive": (now - r["last_seen"]) <= MEMBER_TTL} for r in rows]
 
 
+def view(conn, now):
+    name_by_token = {r["token"]: r["name"] for r in conn.execute("SELECT token, name FROM member")}
+    squads = conn.execute("SELECT squad_id, cwd FROM squad").fetchall()
+    members = conn.execute(
+        "SELECT name, role, last_seen FROM member ORDER BY role DESC, name"
+    ).fetchall()
+    tasks = conn.execute(
+        "SELECT id, title, status, owned_paths, claimed_by_token FROM task ORDER BY id"
+    ).fetchall()
+    return {
+        "squad": ({"squad_id": squads[0]["squad_id"], "cwd": squads[0]["cwd"]} if squads else None),
+        "members": [
+            {"name": r["name"], "role": r["role"], "last_seen": r["last_seen"],
+             "alive": (now - r["last_seen"]) <= MEMBER_TTL}
+            for r in members
+        ],
+        "tasks": [
+            {"id": r["id"], "title": r["title"], "status": r["status"],
+             "owned_paths": json.loads(r["owned_paths"]),
+             "claimed_by": name_by_token.get(r["claimed_by_token"])}
+            for r in tasks
+        ],
+    }
+
+
 def _connect(db_path):
     conn = sqlite3.connect(db_path, isolation_level=None, timeout=30)
     conn.row_factory = sqlite3.Row
@@ -308,6 +337,9 @@ def main(argv=None, now=None):
     sp = sub.add_parser("members"); sp.add_argument("--token", required=True)
     sp = sub.add_parser("list"); sp.add_argument("--token", required=True)
     sp = sub.add_parser("ping"); sp.add_argument("--token", required=True)
+    sp = sub.add_parser("init"); sp.add_argument("--squad-id", required=True); sp.add_argument("--pere-token", required=True); sp.add_argument("--cwd", required=True)
+    sp = sub.add_parser("add-member"); sp.add_argument("--member-token", required=True); sp.add_argument("--squad-id", required=True); sp.add_argument("--role", required=True, choices=["pere", "fils"]); sp.add_argument("--name", required=True); sp.add_argument("--cwd", required=True)
+    sp = sub.add_parser("view")
 
     args = p.parse_args(argv)
     conn = _connect(args.db)
@@ -352,6 +384,12 @@ def _dispatch(conn, args, now):
         return list_tasks(conn, args.token)
     if args.cmd == "ping":
         ping(conn, args.token, now); return {"ok": True}
+    if args.cmd == "init":
+        init_db(conn); init_squad(conn, args.squad_id, args.pere_token, args.cwd, now); return {"ok": True, "squad_id": args.squad_id}
+    if args.cmd == "add-member":
+        add_member(conn, args.member_token, args.squad_id, args.role, args.name, args.cwd, now); return {"ok": True}
+    if args.cmd == "view":
+        return view(conn, now)
     raise NotAllowed(f"commande inconnue: {args.cmd}")
 
 

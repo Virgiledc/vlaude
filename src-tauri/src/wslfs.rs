@@ -1,12 +1,12 @@
 use std::process::Command;
 
 #[cfg(windows)]
-fn no_window(cmd: &mut Command) {
+pub(crate) fn no_window(cmd: &mut Command) {
     use std::os::windows::process::CommandExt;
     cmd.creation_flags(0x08000000);
 }
 #[cfg(not(windows))]
-fn no_window(_cmd: &mut Command) {}
+pub(crate) fn no_window(_cmd: &mut Command) {}
 
 fn run_wsl(script: &str) -> Result<String, String> {
     let mut cmd = Command::new("wsl.exe");

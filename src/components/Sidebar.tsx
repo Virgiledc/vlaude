@@ -4,9 +4,10 @@ import "./Sidebar.css";
 
 interface Props {
   onNewSession: () => void;
+  onNewSquad: () => void;
 }
 
-export function Sidebar({ onNewSession }: Props) {
+export function Sidebar({ onNewSession, onNewSquad }: Props) {
   const sessions = useSessions((s) => s.sessions);
   const focusId = useSessions((s) => s.focusId);
   const setFocus = useSessions((s) => s.setFocus);
@@ -37,6 +38,7 @@ export function Sidebar({ onNewSession }: Props) {
         ))}
       </div>
       <button className="vl-new" onClick={onNewSession}>+ Nouvelle session</button>
+      <button className="vl-new vl-new-squad" onClick={onNewSquad}>⛓ Nouvelle escouade</button>
     </div>
   );
 }

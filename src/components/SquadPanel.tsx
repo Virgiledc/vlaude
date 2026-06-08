@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { useSquad } from "../store/squad";
+import type { InjectionPhase } from "../store/injection";
 import "./SquadPanel.css";
 
 export type SquadTaskStatus = "todo" | "claimed" | "submitted" | "verified";
@@ -6,6 +9,7 @@ export interface SquadMember {
   name: string;
   role: "pere" | "fils";
   alive: boolean;
+  lastSeen: number;
 }
 
 export interface SquadTask {
@@ -42,11 +46,63 @@ const STATUS_LABEL: Record<SquadTaskStatus, string> = {
   verified: "validé",
 };
 
-export function SquadPanel({ squad }: { squad: SquadState }) {
+export function SquadPanel() {
+  const active = useSquad((s) => s.active);
+  const squad = useSquad((s) => s.view);
+  const addFils = useSquad((s) => s.addFils);
+  const disband = useSquad((s) => s.disband);
+  const collapsed = useSquad((s) => s.panelCollapsed);
+  const togglePanel = useSquad((s) => s.togglePanel);
+  const sendFeature = useSquad((s) => s.sendFeature);
+  const perePhase = useSquad((s) => {
+    const pereId = Object.keys(s.roleById).find((id) => s.roleById[id] === "pere");
+    return pereId ? s.injection[pereId]?.phase ?? null : null;
+  });
+
+  if (!active) return null;
+  if (collapsed) {
+    return (
+      <button className="vl-sq-rail" onClick={togglePanel} title="Déplier le panneau escouade">
+        <span className="vl-sq-thread" />
+        <span className="vl-sq-rail-label">Escouade</span>
+      </button>
+    );
+  }
+  if (!squad) {
+    return (
+      <aside className="vl-sq">
+        <div className="vl-sq-head">
+          <div className="vl-sq-eyebrow">
+            <span className="vl-sq-thread" />Escouade
+            <button className="vl-sq-add" onClick={() => addFils()} title="Enrôler un terminal fils">+ fils</button>
+            <button className="vl-sq-x" onClick={disband} title="Dissoudre l'escouade (les terminaux restent ouverts)">×</button>
+            <button className="vl-sq-fold" onClick={togglePanel} title="Replier le panneau">»</button>
+          </div>
+          <div className="vl-sq-name">{active.cwd.replace(/\/+$/, "").split("/").filter(Boolean).pop()}</div>
+        </div>
+        <div className="vl-sq-empty">Connexion au tableau…</div>
+      </aside>
+    );
+  }
+  return <SquadPanelView squad={squad} onAddFils={() => addFils()} onDisband={disband} onCollapse={togglePanel} perePhase={perePhase} onSendFeature={sendFeature} />;
+}
+
+export function SquadPanelView({ squad, onAddFils, onDisband, onCollapse, perePhase, onSendFeature }: { squad: SquadState; onAddFils?: () => void; onDisband?: () => void; onCollapse?: () => void; perePhase?: InjectionPhase | null; onSendFeature?: (text: string) => void }) {
   return (
     <aside className="vl-sq">
       <div className="vl-sq-head">
-        <div className="vl-sq-eyebrow"><span className="vl-sq-thread" />Escouade</div>
+        <div className="vl-sq-eyebrow">
+          <span className="vl-sq-thread" />Escouade
+          {onAddFils && (
+            <button className="vl-sq-add" onClick={onAddFils} title="Enrôler un terminal fils">+ fils</button>
+          )}
+          {onDisband && (
+            <button className="vl-sq-x" onClick={onDisband} title="Dissoudre l'escouade (les terminaux restent ouverts)">×</button>
+          )}
+          {onCollapse && (
+            <button className="vl-sq-fold" onClick={onCollapse} title="Replier le panneau">»</button>
+          )}
+        </div>
         <div className="vl-sq-name">{squad.name}</div>
         <div className="vl-sq-members">
           {squad.members.map((m) => (
@@ -58,6 +114,8 @@ export function SquadPanel({ squad }: { squad: SquadState }) {
         </div>
       </div>
 
+      {onSendFeature && <FeatureCompose phase={perePhase ?? null} onSend={onSendFeature} />}
+
       <div className="vl-sq-board">
         {squad.overlaps.map((o, i) => (
           <div key={`ov-${i}`} className="vl-sq-overlap">
@@ -68,7 +126,7 @@ export function SquadPanel({ squad }: { squad: SquadState }) {
 
         <div className="vl-sq-section">Lots</div>
         {squad.tasks.length === 0 && (
-          <div className="vl-sq-empty">Aucun lot. Le père n'a pas encore découpé la feature.</div>
+          <div className="vl-sq-empty">Aucun lot. Décris la feature dans la zone ci-dessus (ou dans le terminal du père) : il la découpera en lots pour les fils.</div>
         )}
         {squad.tasks.map((t, i) => {
           const flagged = squad.overlaps.some((o) => o.titles.includes(t.title));
@@ -109,13 +167,52 @@ export function SquadPanel({ squad }: { squad: SquadState }) {
   );
 }
 
+const composeHint = (phase: InjectionPhase | null): string => {
+  if (phase === "active") return "Ctrl+Entrée pour envoyer · Entrée pour une nouvelle ligne";
+  if (phase === "failed") return "Rôle du père non confirmé — réinjecte via le bouton rôle de sa tuile.";
+  return "Le père démarre — la saisie s'activera dès que son rôle sera confirmé.";
+};
+
+function FeatureCompose({ phase, onSend }: { phase: InjectionPhase | null; onSend: (text: string) => void }) {
+  const [text, setText] = useState("");
+  const ready = phase === "active";
+  const submit = () => {
+    const t = text.trim();
+    if (!ready || !t) return;
+    onSend(t);
+    setText("");
+  };
+  return (
+    <div className="vl-sq-compose">
+      <textarea
+        className="vl-sq-compose-input"
+        value={text}
+        placeholder="Décris la feature : le père la découpera en lots."
+        disabled={!ready}
+        rows={3}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            submit();
+          }
+        }}
+      />
+      <div className="vl-sq-compose-foot">
+        <span className="vl-sq-compose-hint">{composeHint(phase)}</span>
+        <button className="vl-sq-send" onClick={submit} disabled={!ready || !text.trim()}>Envoyer</button>
+      </div>
+    </div>
+  );
+}
+
 export const MOCK_SQUAD: SquadState = {
   name: "feature/export-csv",
   members: [
-    { name: "père", role: "pere", alive: true },
-    { name: "fils-1", role: "fils", alive: true },
-    { name: "fils-2", role: "fils", alive: true },
-    { name: "fils-3", role: "fils", alive: false },
+    { name: "père", role: "pere", alive: true, lastSeen: 0 },
+    { name: "fils-1", role: "fils", alive: true, lastSeen: 0 },
+    { name: "fils-2", role: "fils", alive: true, lastSeen: 0 },
+    { name: "fils-3", role: "fils", alive: false, lastSeen: 0 },
   ],
   tasks: [
     { id: 1, title: "Endpoint API /export", ownedPaths: ["src/api/export/**"], status: "verified", claimedBy: "fils-1" },
@@ -131,5 +228,5 @@ export const MOCK_SQUAD: SquadState = {
 };
 
 export function SquadPanelPreview() {
-  return <SquadPanel squad={MOCK_SQUAD} />;
+  return <SquadPanelView squad={MOCK_SQUAD} />;
 }

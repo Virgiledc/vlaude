@@ -5,8 +5,10 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import "@xterm/xterm/css/xterm.css";
 import "./terminal.css";
 import { createPty } from "./usePty";
+import { createMarkerScanner } from "./readyScan";
 import { registerTerm, unregisterTerm } from "./termRegistry";
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { useSquad } from "../store/squad";
 
 interface Props {
   id: string;
@@ -61,12 +63,27 @@ export function TerminalView({ id, cwd, kind = "claude", visible, fullscreen }: 
     document.fonts.load('700 13px "Geist Mono"').then(() => {
       if (!disposed) term.clearTextureAtlas();
     }).catch(() => {});
-    const pty = createPty(id, cwd, term.cols, term.rows, (bytes) => term.write(bytes), kind);
+    const squad = useSquad.getState();
+    const env = squad.envById[id];
+    let scan: ((bytes: Uint8Array) => void) | null = null;
+    if (kind === "claude" && squad.injection[id]) {
+      squad.notifySpawn(id);
+      scan = createMarkerScanner(() => {
+        scan = null;
+        useSquad.getState().markReady(id);
+      });
+    }
+    const pty = createPty(id, cwd, term.cols, term.rows, (bytes) => {
+      term.write(bytes);
+      if (scan) scan(bytes);
+    }, kind, env);
     const dataSub = term.onData((d) => pty.write(d));
 
     let lastCols = term.cols;
     let lastRows = term.rows;
     const applyResize = () => {
+      const host = hostRef.current;
+      if (!host || host.clientWidth === 0 || host.clientHeight === 0) return;
       fit.fit();
       if (term.cols === lastCols && term.rows === lastRows) return;
       lastCols = term.cols;

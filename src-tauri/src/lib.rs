@@ -1,4 +1,5 @@
 mod pty;
+mod squad;
 mod wslfs;
 
 use std::fs;
@@ -17,9 +18,10 @@ fn pty_spawn(
     cols: u16,
     rows: u16,
     kind: SessionKind,
+    env: Option<Vec<(String, String)>>,
     on_data: Channel<Vec<u8>>,
 ) -> Result<(), String> {
-    state.spawn(id, distro, cwd, cols, rows, kind, on_data)
+    state.spawn(id, distro, cwd, cols, rows, kind, env.unwrap_or_default(), on_data)
 }
 
 #[tauri::command]
@@ -84,7 +86,16 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_stt::init())
         .manage(PtyManager::default())
+        .setup(|_app| {
+            std::thread::spawn(|| {
+                if let Err(e) = squad::install_squad_assets() {
+                    eprintln!("squad assets install failed: {e}");
+                }
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             pty_spawn,
             pty_write,
@@ -96,7 +107,8 @@ pub fn run() {
             save_layout,
             load_layout,
             save_plugin_favorites,
-            load_plugin_favorites
+            load_plugin_favorites,
+            squad::squad_cli
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

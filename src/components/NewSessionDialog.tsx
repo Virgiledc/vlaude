@@ -22,9 +22,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onCreate: (cwd: string, name?: string) => void;
+  mode?: "session" | "squad";
 }
 
-export function NewSessionDialog({ open, onClose, onCreate }: Props) {
+export function NewSessionDialog({ open, onClose, onCreate, mode = "session" }: Props) {
   const [cwd, setCwd] = useState("");
   const [name, setName] = useState("");
   const [recents, setRecents] = useState<string[]>([]);
@@ -62,7 +63,7 @@ export function NewSessionDialog({ open, onClose, onCreate }: Props) {
   return (
     <div className="vl-overlay" onMouseDown={onClose}>
       <div className="vl-modal" onMouseDown={(e) => e.stopPropagation()}>
-        <h3>Nouvelle session</h3>
+        <h3>{mode === "squad" ? "Nouvelle escouade" : "Nouvelle session"}</h3>
 
         <label>Dossier WSL</label>
         <input
@@ -109,7 +110,7 @@ export function NewSessionDialog({ open, onClose, onCreate }: Props) {
 
         <div className="vl-modal-actions">
           <button className="ghost" onClick={onClose}>Annuler</button>
-          <button className="primary" onClick={submit}>Créer ici</button>
+          <button className="primary" onClick={submit}>{mode === "squad" ? "Créer l'escouade" : "Créer ici"}</button>
         </div>
       </div>
     </div>

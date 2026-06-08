@@ -25,3 +25,5 @@
   transition: border-color 140ms, color 140ms;
 }
 .vl-new:hover { border-color: var(--accent-border); color: var(--text-hi); }
+.vl-new-squad { margin-top: 0; border-style: solid; border-color: var(--accent-border); color: var(--text-mid); }
+.vl-new-squad:hover { background: var(--accent-soft); color: var(--text-hi); }

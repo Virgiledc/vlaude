@@ -32,6 +32,7 @@ impl PtyManager {
         cols: u16,
         rows: u16,
         kind: SessionKind,
+        env: Vec<(String, String)>,
         on_data: Channel<Vec<u8>>,
     ) -> Result<(), String> {
         let pty_system = native_pty_system();
@@ -40,7 +41,7 @@ impl PtyManager {
             .map_err(|e| e.to_string())?;
 
         let mut cmd = CommandBuilder::new("wsl.exe");
-        for arg in build_wsl_argv(distro.as_deref(), &cwd, kind) {
+        for arg in build_wsl_argv(distro.as_deref(), &cwd, kind, &env) {
             cmd.arg(arg);
         }
         let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;

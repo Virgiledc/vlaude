@@ -80,7 +80,7 @@ export function Canvas({ onRequestClose }: Props) {
         <div
           key={w.id}
           className="vl-workspace-layer"
-          style={{ display: w.id === activeWorkspaceId ? "block" : "none" }}
+          style={{ visibility: w.id === activeWorkspaceId ? "visible" : "hidden" }}
         >
           <WorkspaceGrid workspaceId={w.id} onRequestClose={onRequestClose} />
         </div>
