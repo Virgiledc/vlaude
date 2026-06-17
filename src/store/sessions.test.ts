@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { useSessions } from "./sessions";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useSessions, type PersistedSnapshot, type Session } from "./sessions";
 
 const reset = () =>
   useSessions.setState({
@@ -126,7 +126,18 @@ describe("sessions store", () => {
     expect(useSessions.getState().fullscreenId).toBeNull();
   });
 
-  it("switchWorkspace and createWorkspace exit fullscreen", () => {
+  it("switchWorkspace preserves fullscreen across workspaces", () => {
+    const ws2 = useSessions.getState().createWorkspace("X");
+    const a = useSessions.getState().createSession("/home/v/a");
+    useSessions.getState().toggleFullscreen(a);
+    expect(useSessions.getState().fullscreenId).toBe(a);
+    useSessions.getState().switchWorkspace("ws-1");
+    expect(useSessions.getState().fullscreenId).toBe(a);
+    useSessions.getState().switchWorkspace(ws2);
+    expect(useSessions.getState().fullscreenId).toBe(a);
+  });
+
+  it("createWorkspace exits fullscreen", () => {
     const a = useSessions.getState().createSession("/home/v/a");
     useSessions.getState().toggleFullscreen(a);
     expect(useSessions.getState().fullscreenId).toBe(a);
@@ -139,5 +150,72 @@ describe("sessions store", () => {
     useSessions.getState().toggleFullscreen(a);
     const snap = useSessions.getState().snapshot();
     expect("fullscreenId" in snap).toBe(false);
+  });
+});
+
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+describe("claudeSessionId", () => {
+  beforeEach(reset);
+
+  it("createSession assigns a valid v4 uuid", () => {
+    useSessions.getState().createSession("/home/v/a");
+    expect(useSessions.getState().sessions[0].claudeSessionId).toMatch(UUID_V4);
+  });
+
+  it("two sessions in the same cwd get distinct uuids", () => {
+    const st = useSessions.getState();
+    st.createSession("/home/v/a");
+    st.createSession("/home/v/a");
+    const [a, b] = useSessions.getState().sessions.map((s) => s.claudeSessionId);
+    expect(a).not.toBe(b);
+  });
+
+  it("falls back to a valid v4 uuid without crypto.randomUUID", () => {
+    vi.stubGlobal("crypto", undefined);
+    try {
+      useSessions.getState().createSession("/home/v/a");
+      expect(useSessions.getState().sessions[0].claudeSessionId).toMatch(UUID_V4);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("hydrate preserves an existing claudeSessionId", () => {
+    useSessions.getState().createSession("/home/v/a");
+    const snap = useSessions.getState().snapshot();
+    const uuid = snap.sessions[0].claudeSessionId;
+    expect(uuid).toMatch(UUID_V4);
+    reset();
+    useSessions.getState().hydrate(snap);
+    expect(useSessions.getState().sessions[0].claudeSessionId).toBe(uuid);
+  });
+
+  it("hydrate generates a claudeSessionId for legacy snapshots", () => {
+    useSessions.getState().createSession("/home/v/a");
+    const snap = JSON.parse(JSON.stringify(useSessions.getState().snapshot())) as PersistedSnapshot;
+    snap.sessions.forEach((s) => {
+      delete (s as Partial<Session>).claudeSessionId;
+    });
+    reset();
+    useSessions.getState().hydrate(snap);
+    expect(useSessions.getState().sessions[0].claudeSessionId).toMatch(UUID_V4);
+  });
+});
+
+describe("respawnSession", () => {
+  beforeEach(reset);
+
+  it("swaps only the targeted session's claudeSessionId for a fresh uuid", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    const b = useSessions.getState().createSession("/home/v/a");
+    const beforeA = useSessions.getState().sessions.find((s) => s.id === a)!.claudeSessionId;
+    const beforeB = useSessions.getState().sessions.find((s) => s.id === b)!.claudeSessionId;
+    useSessions.getState().respawnSession(a);
+    const afterA = useSessions.getState().sessions.find((s) => s.id === a)!.claudeSessionId;
+    const afterB = useSessions.getState().sessions.find((s) => s.id === b)!.claudeSessionId;
+    expect(afterA).toMatch(UUID_V4);
+    expect(afterA).not.toBe(beforeA);
+    expect(afterB).toBe(beforeB);
   });
 });

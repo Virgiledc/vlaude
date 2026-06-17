@@ -16,6 +16,7 @@ export interface Session {
   order: number;
   state: SessionState;
   openInCanvas: boolean;
+  claudeSessionId: string;
 }
 
 export interface GridItem {
@@ -49,6 +50,7 @@ interface AppState extends PersistedSnapshot {
   exitFullscreen: () => void;
   toggleView: (id: string) => void;
   setSessionState: (id: string, state: SessionState) => void;
+  respawnSession: (id: string) => void;
   reorderInZone: (workspaceId: string, cwd: string, orderedIds: string[]) => void;
   setLayout: (workspaceId: string, items: GridItem[]) => void;
   setSidebarWidth: (w: number) => void;
@@ -64,6 +66,19 @@ const newId = (): string =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
+
+const newUuid = (): string => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  const hex = "0123456789abcdef";
+  let u = "";
+  for (let i = 0; i < 36; i++) {
+    if (i === 8 || i === 13 || i === 18 || i === 23) u += "-";
+    else if (i === 14) u += "4";
+    else if (i === 19) u += hex[8 + Math.floor(Math.random() * 4)];
+    else u += hex[Math.floor(Math.random() * 16)];
+  }
+  return u;
+};
 
 const FIRST_WS = "ws-1";
 const defaultWorkspaces = (): Workspace[] => [{ id: FIRST_WS, name: "Workspace 1" }];
@@ -96,6 +111,7 @@ export const useSessions = create<AppState>((set, get) => ({
         order: maxOrder + 1,
         state: "working",
         openInCanvas: true,
+        claudeSessionId: newUuid(),
       };
       return { sessions: [...st.sessions, session], focusId: id, counter };
     });
@@ -143,6 +159,11 @@ export const useSessions = create<AppState>((set, get) => ({
       sessions: st.sessions.map((s) => (s.id === id ? { ...s, state } : s)),
     })),
 
+  respawnSession: (id) =>
+    set((st) => ({
+      sessions: st.sessions.map((s) => (s.id === id ? { ...s, claudeSessionId: newUuid() } : s)),
+    })),
+
   reorderInZone: (workspaceId, cwd, orderedIds) =>
     set((st) => {
       const pos = new Map(orderedIds.map((sid, i) => [sid, i] as const));
@@ -188,13 +209,17 @@ export const useSessions = create<AppState>((set, get) => ({
       return { workspaces, sessions, activeWorkspaceId, layouts, fullscreenId };
     }),
 
-  switchWorkspace: (id) => set({ activeWorkspaceId: id, fullscreenId: null }),
+  switchWorkspace: (id) => set({ activeWorkspaceId: id }),
 
   hydrate: (snap) =>
     set({
       workspaces: snap.workspaces.length ? snap.workspaces : defaultWorkspaces(),
       activeWorkspaceId: snap.activeWorkspaceId || FIRST_WS,
-      sessions: snap.sessions.map((s) => ({ ...s, state: "working" as SessionState })),
+      sessions: snap.sessions.map((s) => ({
+        ...s,
+        state: "working" as SessionState,
+        claudeSessionId: s.claudeSessionId ?? newUuid(),
+      })),
       counter: snap.counter,
       workspaceCounter: snap.workspaceCounter,
       layouts: snap.layouts ?? {},
