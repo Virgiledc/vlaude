@@ -3,7 +3,7 @@ import { TerminalView } from "../terminal/TerminalView";
 import { prettyCwd } from "../store/grouping";
 import { useSessions, type Session } from "../store/sessions";
 import { useSquad } from "../store/squad";
-import { micView, useDictation } from "../store/dictation";
+import { useReload } from "../store/reload";
 import type { InjectionPhase } from "../store/injection";
 import { invoke } from "@tauri-apps/api/core";
 import "./SessionTile.css";
@@ -53,18 +53,12 @@ export function SessionTile({ session, focused, fullscreen, onFocus, onRemove, o
   const role = useSquad((s) => s.roleById[session.id]);
   const injectionPhase = useSquad((s) => s.injection[session.id]?.phase);
   const manualInject = useSquad((s) => s.manualInject);
-  const dictPhase = useDictation((s) => s.phase);
-  const dictActiveId = useDictation((s) => s.activeId);
-  const dictProgress = useDictation((s) => s.progress);
-  const dictError = useDictation((s) => s.error);
-  const toggleDictation = useDictation((s) => s.toggle);
-  const abortDictation = useDictation((s) => s.abortIfActive);
+  const reloadPhase = useReload((s) => s.entries[session.id]?.phase);
+  const startReload = useReload((s) => s.startReload);
   const [termOpened, setTermOpened] = useState(false);
   useEffect(() => {
     if (view === "term") setTermOpened(true);
   }, [view]);
-  useEffect(() => () => abortDictation(session.id), [session.id, abortDictation]);
-  const mic = micView(session.id, { phase: dictPhase, activeId: dictActiveId, progress: dictProgress, error: dictError });
   return (
     <div
       className={`vl-tile${focused ? " focused" : ""}`}
@@ -89,8 +83,12 @@ export function SessionTile({ session, focused, fullscreen, onFocus, onRemove, o
           <button title="/clear" className="cmd" onClick={(e) => { e.stopPropagation(); sendCommand(session.id, "/clear"); }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
           </button>
-          <button title={mic.title} className={`cmd${mic.cls}`} disabled={mic.disabled} onClick={(e) => { e.stopPropagation(); toggleDictation(session.id); }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          <button
+            title="reload — récap → session vierge"
+            className={`cmd${reloadPhase === "recapping" || reloadPhase === "clearing" ? " pending" : reloadPhase === "error" ? " failed" : ""}`}
+            onClick={(e) => { e.stopPropagation(); startReload(session.id); }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
           </button>
           <button title={view === "term" ? "Revenir à Claude (Ctrl+T)" : "Terminal (Ctrl+T)"} className={`cmd${view === "term" ? " active" : ""}`} onClick={(e) => { e.stopPropagation(); toggleView(session.id); }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>
@@ -105,7 +103,7 @@ export function SessionTile({ session, focused, fullscreen, onFocus, onRemove, o
       </div>
       <div className="vl-tile-body">
         <div className="vl-term-layer" data-active={view === "claude"}>
-          <TerminalView id={session.id} cwd={session.cwd} kind="claude" visible={session.openInCanvas && view === "claude"} fullscreen={fullscreen} />
+          <TerminalView id={session.id} cwd={session.cwd} kind="claude" claudeSessionId={session.claudeSessionId} visible={session.openInCanvas && view === "claude"} fullscreen={fullscreen} />
         </div>
         {termOpened && (
           <div className="vl-term-layer" data-active={view === "term"}>
