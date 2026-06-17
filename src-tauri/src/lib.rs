@@ -19,9 +19,10 @@ fn pty_spawn(
     rows: u16,
     kind: SessionKind,
     env: Option<Vec<(String, String)>>,
+    claude_session_id: Option<String>,
     on_data: Channel<Vec<u8>>,
 ) -> Result<(), String> {
-    state.spawn(id, distro, cwd, cols, rows, kind, env.unwrap_or_default(), on_data)
+    state.spawn(id, distro, cwd, cols, rows, kind, env.unwrap_or_default(), claude_session_id, on_data)
 }
 
 #[tauri::command]
@@ -86,7 +87,6 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_stt::init())
         .manage(PtyManager::default())
         .setup(|_app| {
             std::thread::spawn(|| {
@@ -102,6 +102,7 @@ pub fn run() {
             pty_resize,
             pty_close,
             wslfs::wsl_home,
+            wslfs::wsl_read_file,
             wslfs::list_wsl_dirs,
             wslfs::list_claude_plugins,
             save_layout,

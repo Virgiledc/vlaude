@@ -24,6 +24,17 @@ pub fn wsl_home() -> Result<String, String> {
     Ok(run_wsl("printf '%s' \"$HOME\"")?.trim().to_string())
 }
 
+fn decode_read(out: &str) -> Option<String> {
+    out.strip_prefix('Y').map(|s| s.to_string())
+}
+
+#[tauri::command]
+pub fn wsl_read_file(path: String) -> Result<Option<String>, String> {
+    let safe = path.replace('\'', "'\\''");
+    let script = format!("if [ -f '{p}' ]; then printf Y; cat '{p}'; else printf N; fi", p = safe);
+    Ok(decode_read(&run_wsl(&script)?))
+}
+
 #[tauri::command]
 pub fn list_wsl_dirs(path: String) -> Result<Vec<String>, String> {
     let safe = path.replace('\'', "'\\''");
@@ -168,6 +179,14 @@ pub fn list_claude_plugins() -> Result<Vec<PluginItem>, String> {
 #[cfg(test)]
 mod tests {
     use super::b64_encode;
+    use super::decode_read;
+
+    #[test]
+    fn decode_read_distinguishes_absent_empty_present() {
+        assert_eq!(decode_read("Yhello"), Some("hello".to_string()));
+        assert_eq!(decode_read("Y"), Some(String::new()));
+        assert_eq!(decode_read("N"), None);
+    }
 
     #[test]
     fn base64_rfc4648_vectors() {
