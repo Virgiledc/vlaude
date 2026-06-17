@@ -9,18 +9,21 @@ import { createMarkerScanner } from "./readyScan";
 import { registerTerm, unregisterTerm } from "./termRegistry";
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useSquad } from "../store/squad";
+import { useReload } from "../store/reload";
 
 interface Props {
   id: string;
   cwd: string;
   kind?: "claude" | "term";
+  claudeSessionId?: string;
   visible: boolean;
   fullscreen: boolean;
 }
 
 const RESIZE_DEBOUNCE_MS = 80;
+const MIN_FIT_WIDTH_PX = 80;
 
-export function TerminalView({ id, cwd, kind = "claude", visible, fullscreen }: Props) {
+export function TerminalView({ id, cwd, kind = "claude", claudeSessionId, visible, fullscreen }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const applyResizeRef = useRef<(() => void) | null>(null);
@@ -72,11 +75,16 @@ export function TerminalView({ id, cwd, kind = "claude", visible, fullscreen }: 
         scan = null;
         useSquad.getState().markReady(id);
       });
+    } else if (kind === "claude" && useReload.getState().isClearing(id)) {
+      scan = createMarkerScanner(() => {
+        scan = null;
+        useReload.getState().onReady(id);
+      });
     }
     const pty = createPty(id, cwd, term.cols, term.rows, (bytes) => {
       term.write(bytes);
       if (scan) scan(bytes);
-    }, kind, env);
+    }, kind, env, claudeSessionId);
     const dataSub = term.onData((d) => pty.write(d));
 
     let lastCols = term.cols;
@@ -84,6 +92,8 @@ export function TerminalView({ id, cwd, kind = "claude", visible, fullscreen }: 
     const applyResize = () => {
       const host = hostRef.current;
       if (!host || host.clientWidth === 0 || host.clientHeight === 0) return;
+      if (host.clientWidth < MIN_FIT_WIDTH_PX) return;
+      if (!host.checkVisibility({ visibilityProperty: true })) return;
       fit.fit();
       if (term.cols === lastCols && term.rows === lastRows) return;
       lastCols = term.cols;
@@ -112,7 +122,7 @@ export function TerminalView({ id, cwd, kind = "claude", visible, fullscreen }: 
       termRef.current = null;
       applyResizeRef.current = null;
     };
-  }, [id, cwd, kind]);
+  }, [id, cwd, kind, claudeSessionId]);
 
   useEffect(() => {
     if (!visible || !termRef.current || !applyResizeRef.current) return;
