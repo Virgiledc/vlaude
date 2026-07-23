@@ -3,6 +3,8 @@ import { clampSidebarWidth, SIDEBAR_WIDTH_DEFAULT } from "./sidebar";
 
 export type SessionState = "working" | "waiting" | "attention" | "exited";
 
+export type SessionLaunchKind = "claude" | "claudex";
+
 export interface Workspace {
   id: string;
   name: string;
@@ -17,6 +19,7 @@ export interface Session {
   state: SessionState;
   openInCanvas: boolean;
   claudeSessionId: string;
+  kind: SessionLaunchKind;
 }
 
 export interface GridItem {
@@ -41,7 +44,7 @@ interface AppState extends PersistedSnapshot {
   focusId: string | null;
   fullscreenId: string | null;
   views: Record<string, "claude" | "term">;
-  createSession: (cwd: string, name?: string) => string;
+  createSession: (cwd: string, name?: string, kind?: SessionLaunchKind) => string;
   openInCanvas: (id: string) => void;
   removeFromCanvas: (id: string) => void;
   closeSession: (id: string) => void;
@@ -95,7 +98,7 @@ export const useSessions = create<AppState>((set, get) => ({
   layouts: {},
   sidebarWidth: SIDEBAR_WIDTH_DEFAULT,
 
-  createSession: (cwd, name) => {
+  createSession: (cwd, name, kind) => {
     const id = newId();
     set((st) => {
       const counter = st.counter + 1;
@@ -112,6 +115,7 @@ export const useSessions = create<AppState>((set, get) => ({
         state: "working",
         openInCanvas: true,
         claudeSessionId: newUuid(),
+        kind: kind ?? "claude",
       };
       return { sessions: [...st.sessions, session], focusId: id, counter };
     });
@@ -219,6 +223,7 @@ export const useSessions = create<AppState>((set, get) => ({
         ...s,
         state: "working" as SessionState,
         claudeSessionId: s.claudeSessionId ?? newUuid(),
+        kind: s.kind ?? "claude",
       })),
       counter: snap.counter,
       workspaceCounter: snap.workspaceCounter,

@@ -14,7 +14,7 @@ import { useReload } from "../store/reload";
 interface Props {
   id: string;
   cwd: string;
-  kind?: "claude" | "term";
+  kind?: "claude" | "claudex" | "term";
   claudeSessionId?: string;
   visible: boolean;
   fullscreen: boolean;
@@ -75,7 +75,7 @@ export function TerminalView({ id, cwd, kind = "claude", claudeSessionId, visibl
         scan = null;
         useSquad.getState().markReady(id);
       });
-    } else if (kind === "claude" && useReload.getState().isClearing(id)) {
+    } else if (kind !== "term" && useReload.getState().isClearing(id)) {
       scan = createMarkerScanner(() => {
         scan = null;
         useReload.getState().onReady(id);

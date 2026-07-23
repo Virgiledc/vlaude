@@ -26,6 +26,20 @@
   transition: border-color 120ms, color 120ms;
 }
 .vl-chip:hover { border-color: var(--accent-border); color: var(--text-hi); }
+.vl-kind-toggle {
+  display: flex; gap: 4px; background: var(--bg-1);
+  border: 1px solid var(--border); border-radius: var(--r-md); padding: 3px;
+}
+.vl-kind-toggle button {
+  flex: 1; background: none; border: 1px solid transparent;
+  border-radius: calc(var(--r-md) - 3px); padding: 6px 10px;
+  color: var(--text-mid); font-family: var(--font-mono); font-size: 12px;
+  cursor: pointer; transition: background 120ms, border-color 120ms, color 120ms;
+}
+.vl-kind-toggle button:hover { color: var(--text-hi); }
+.vl-kind-toggle button.active {
+  background: var(--accent-soft); border-color: var(--accent-border); color: var(--text-hi);
+}
 .vl-modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 20px; }
 .vl-modal-actions button {
   border-radius: var(--r-md); padding: 8px 16px; font-size: 12.5px;

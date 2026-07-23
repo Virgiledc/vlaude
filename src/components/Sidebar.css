@@ -17,6 +17,11 @@
 .vl-side-row:hover { background: rgba(255, 255, 255, 0.04); }
 .vl-side-row.focused { background: var(--accent-soft); color: var(--text-hi); }
 .vl-side-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vl-badge-gpt {
+  flex: none; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em;
+  line-height: 1.2; padding: 1px 4px; border-radius: 3px;
+  color: var(--text-lo); border: 1px solid var(--border);
+}
 .vl-side-open { color: var(--accent); font-size: 8px; }
 .vl-new {
   margin: 8px; padding: 9px; background: none; color: var(--text-mid);

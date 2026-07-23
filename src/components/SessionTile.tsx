@@ -69,6 +69,7 @@ export function SessionTile({ session, focused, fullscreen, onFocus, onRemove, o
         <span className="vl-dir-dot" />
         <span className={`vl-dot ${session.state}`} />
         <span className="vl-tile-name">{session.name}</span>
+        {session.kind === "claudex" && <span className="vl-badge-gpt">GPT</span>}
         <span className="vl-tile-dir">{prettyCwd(session.cwd)}</span>
         <span className="vl-tile-actions vl-no-drag">
           {role && (
@@ -103,7 +104,7 @@ export function SessionTile({ session, focused, fullscreen, onFocus, onRemove, o
       </div>
       <div className="vl-tile-body">
         <div className="vl-term-layer" data-active={view === "claude"}>
-          <TerminalView id={session.id} cwd={session.cwd} kind="claude" claudeSessionId={session.claudeSessionId} visible={session.openInCanvas && view === "claude"} fullscreen={fullscreen} />
+          <TerminalView id={session.id} cwd={session.cwd} kind={session.kind} claudeSessionId={session.claudeSessionId} visible={session.openInCanvas && view === "claude"} fullscreen={fullscreen} />
         </div>
         {termOpened && (
           <div className="vl-term-layer" data-active={view === "term"}>

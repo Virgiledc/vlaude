@@ -6,7 +6,7 @@ use std::thread;
 use std::time::Duration;
 
 use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize};
-use tauri::ipc::Channel;
+use tauri::ipc::{Channel, InvokeResponseBody};
 
 use super::coalesce::Coalescer;
 use super::wsl::{build_wsl_argv, SessionKind};
@@ -33,7 +33,8 @@ impl PtyManager {
         rows: u16,
         kind: SessionKind,
         env: Vec<(String, String)>,
-        on_data: Channel<Vec<u8>>,
+        claude_session_id: Option<String>,
+        on_data: Channel<InvokeResponseBody>,
     ) -> Result<(), String> {
         let pty_system = native_pty_system();
         let pair = pty_system
@@ -41,7 +42,7 @@ impl PtyManager {
             .map_err(|e| e.to_string())?;
 
         let mut cmd = CommandBuilder::new("wsl.exe");
-        for arg in build_wsl_argv(distro.as_deref(), &cwd, kind, &env) {
+        for arg in build_wsl_argv(distro.as_deref(), &cwd, kind, &env, claude_session_id.as_deref()) {
             cmd.arg(arg);
         }
         let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
@@ -78,13 +79,13 @@ impl PtyManager {
                     thread::sleep(Duration::from_millis(16));
                     let drained = coalescer.lock().unwrap().drain();
                     if let Some(bytes) = drained {
-                        if on_data.send(bytes).is_err() {
+                        if on_data.send(InvokeResponseBody::Raw(bytes)).is_err() {
                             break;
                         }
                     }
                 }
                 if let Some(bytes) = coalescer.lock().unwrap().drain() {
-                    let _ = on_data.send(bytes);
+                    let _ = on_data.send(InvokeResponseBody::Raw(bytes));
                 }
             });
         }

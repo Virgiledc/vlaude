@@ -10,6 +10,8 @@ const mk = (over: Partial<Session>): Session => ({
   order: over.order ?? 0,
   state: "working",
   openInCanvas: true,
+  claudeSessionId: over.claudeSessionId ?? "00000000-0000-4000-8000-000000000000",
+  kind: over.kind ?? "claude",
 });
 
 describe("groupByPath", () => {

@@ -50,6 +50,7 @@
 Rien n'est « fait » sans **preuve concrète** : vrai terminal `claude` qui répond, build `.exe` qui démarre, multi-session fluide observée. Pas de « ça devrait marcher ».
 
 ## État / en cours
+- **Resume conversations au restart** — *implémenté (suites vertes), en attente de validation live*. Chaque `Session` porte un `claudeSessionId` (UUID imposé) ; spawn idempotent dans `wsl.rs` : transcript présent → `claude --resume <uuid>`, sinon `claude --session-id <uuid>`. Spec : `docs/superpowers/specs/2026-06-12-resume-claude-sessions-design.md`. Checklist live en 5 points dans le plan (`docs/superpowers/plans/2026-06-12-resume-claude-sessions.md`, Task 4).
 - **Input image (drag-drop)** — *implémenté, en attente de validation live*. Fichiers : `src/terminal/{useImageDrop,termRegistry,winToWsl}.ts` + register dans `TerminalView`, hook monté dans `App`. Flux : `onDragDropEvent` (Tauri) → session `focusId` → chemin Windows→WSL → `term.paste(chemin)` (bracketed paste). **Hypothèse à confirmer en live** : `claude` attache une image sur un *paste* de chemin (pas sur un chemin tapé). À suivre : Ctrl+V presse-papier + halo visuel (skill `frontend-design`).
 
 ## Gotchas / traps

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { wslHome, listWslDirs } from "../store/wslfs";
+import type { SessionLaunchKind } from "../store/sessions";
 import "./NewSessionDialog.css";
 
 const RECENTS_KEY = "vlaude.recentCwds";
@@ -21,13 +22,14 @@ const joinPath = (p: string, name: string) =>
 interface Props {
   open: boolean;
   onClose: () => void;
-  onCreate: (cwd: string, name?: string) => void;
+  onCreate: (cwd: string, name?: string, kind?: SessionLaunchKind) => void;
   mode?: "session" | "squad";
 }
 
 export function NewSessionDialog({ open, onClose, onCreate, mode = "session" }: Props) {
   const [cwd, setCwd] = useState("");
   const [name, setName] = useState("");
+  const [kind, setKind] = useState<SessionLaunchKind>("claude");
   const [recents, setRecents] = useState<string[]>([]);
   const [dirs, setDirs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,6 +49,7 @@ export function NewSessionDialog({ open, onClose, onCreate, mode = "session" }: 
     if (!open) return;
     setRecents(loadRecents());
     setName("");
+    setKind("claude");
     wslHome().then((h) => browse(h || "/home")).catch(() => browse("/home"));
   }, [open]);
 
@@ -56,7 +59,7 @@ export function NewSessionDialog({ open, onClose, onCreate, mode = "session" }: 
     const trimmed = cwd.trim();
     if (!trimmed) return;
     pushRecent(trimmed);
-    onCreate(trimmed, name.trim() || undefined);
+    onCreate(trimmed, name.trim() || undefined, kind);
     onClose();
   };
 
@@ -107,6 +110,24 @@ export function NewSessionDialog({ open, onClose, onCreate, mode = "session" }: 
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
         />
+
+        {mode === "session" && (
+          <>
+            <label>Agent</label>
+            <div className="vl-kind-toggle" role="radiogroup">
+              <button
+                type="button"
+                className={kind === "claude" ? "active" : ""}
+                onClick={() => setKind("claude")}
+              >claude</button>
+              <button
+                type="button"
+                className={kind === "claudex" ? "active" : ""}
+                onClick={() => setKind("claudex")}
+              >claudex · GPT</button>
+            </div>
+          </>
+        )}
 
         <div className="vl-modal-actions">
           <button className="ghost" onClick={onClose}>Annuler</button>

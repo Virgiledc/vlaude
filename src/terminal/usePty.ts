@@ -12,10 +12,11 @@ export function createPty(
   cols: number,
   rows: number,
   onData: (bytes: Uint8Array) => void,
-  kind: "claude" | "term" = "claude",
-  env?: Record<string, string>
+  kind: "claude" | "claudex" | "term" = "claude",
+  env?: Record<string, string>,
+  claudeSessionId?: string
 ): PtyHandle {
-  const channel = new Channel<Uint8Array | number[]>();
+  const channel = new Channel<ArrayBuffer | Uint8Array>();
   channel.onmessage = (msg) => {
     onData(msg instanceof Uint8Array ? msg : new Uint8Array(msg));
   };
@@ -23,6 +24,7 @@ export function createPty(
   invoke("pty_spawn", {
     id, distro: null, cwd, cols, rows, kind,
     env: env ? Object.entries(env) : null,
+    claudeSessionId: claudeSessionId ?? null,
     onData: channel,
   }).catch(
     (e) => console.error("pty_spawn failed", e)

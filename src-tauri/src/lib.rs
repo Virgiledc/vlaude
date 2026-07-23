@@ -5,7 +5,7 @@ mod wslfs;
 use std::fs;
 use pty::manager::PtyManager;
 use pty::wsl::SessionKind;
-use tauri::ipc::Channel;
+use tauri::ipc::{Channel, InvokeResponseBody};
 use tauri::Manager;
 use tauri::State;
 
@@ -20,7 +20,7 @@ fn pty_spawn(
     kind: SessionKind,
     env: Option<Vec<(String, String)>>,
     claude_session_id: Option<String>,
-    on_data: Channel<Vec<u8>>,
+    on_data: Channel<InvokeResponseBody>,
 ) -> Result<(), String> {
     state.spawn(id, distro, cwd, cols, rows, kind, env.unwrap_or_default(), claude_session_id, on_data)
 }

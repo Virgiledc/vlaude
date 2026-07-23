@@ -151,6 +151,26 @@ describe("sessions store", () => {
     const snap = useSessions.getState().snapshot();
     expect("fullscreenId" in snap).toBe(false);
   });
+
+  it("createSession defaults kind to claude", () => {
+    const id = useSessions.getState().createSession("/home/v/a");
+    expect(useSessions.getState().sessions.find((s) => s.id === id)!.kind).toBe("claude");
+  });
+
+  it("createSession with claudex kind persists it through snapshot/hydrate", () => {
+    const id = useSessions.getState().createSession("/home/v/a", undefined, "claudex");
+    const snap = useSessions.getState().snapshot();
+    useSessions.getState().hydrate(snap);
+    expect(useSessions.getState().sessions.find((s) => s.id === id)!.kind).toBe("claudex");
+  });
+
+  it("hydrate falls back to claude for sessions without kind", () => {
+    useSessions.getState().createSession("/home/v/a");
+    const snap = useSessions.getState().snapshot();
+    const legacy = { ...snap, sessions: snap.sessions.map(({ kind: _k, ...rest }) => rest) } as never;
+    useSessions.getState().hydrate(legacy);
+    expect(useSessions.getState().sessions[0].kind).toBe("claude");
+  });
 });
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;

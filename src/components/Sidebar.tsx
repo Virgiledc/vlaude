@@ -31,6 +31,7 @@ export function Sidebar({ onNewSession, onNewSquad }: Props) {
               >
                 <span className={`vl-dot ${s.state}`} />
                 <span className="vl-side-name">{s.name}</span>
+                {s.kind === "claudex" && <span className="vl-badge-gpt">GPT</span>}
                 {s.openInCanvas && <span className="vl-side-open">●</span>}
               </div>
             ))}

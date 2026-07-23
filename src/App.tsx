@@ -9,7 +9,6 @@ import { SidebarResizer } from "./components/SidebarResizer";
 import { useSessions } from "./store/sessions";
 import { loadLayout, startAutoSave } from "./store/persistence";
 import { useImageDrop } from "./terminal/useImageDrop";
-import { useDictationEvents } from "./terminal/useDictationEvents";
 import { SquadPanel } from "./components/SquadPanel";
 import { useSquad } from "./store/squad";
 import "./App.css";
@@ -28,7 +27,6 @@ export default function App() {
   const [ready, setReady] = useState(false);
 
   useImageDrop();
-  useDictationEvents();
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -65,7 +63,7 @@ export default function App() {
         open={dialogMode !== null}
         mode={dialogMode ?? "session"}
         onClose={() => setDialogMode(null)}
-        onCreate={(cwd, name) => { if (dialogMode === "squad") createSquad(cwd, name); else createSession(cwd, name); }}
+        onCreate={(cwd, name, kind) => { if (dialogMode === "squad") createSquad(cwd, name); else createSession(cwd, name, kind); }}
       />
       <ConfirmCloseModal
         name={closeName}
