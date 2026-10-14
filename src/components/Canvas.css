@@ -1,9 +1,12 @@
 .vl-canvas-root { position: relative; flex: 1; min-width: 0; height: 100%; }
 .vl-workspace-layer { position: absolute; inset: 0; }
-.vl-canvas { height: 100%; background: var(--bg-1); padding: 8px; overflow-y: auto; box-sizing: border-box; }
+.vl-canvas {
+  height: 100%; padding: 8px; overflow-y: auto; box-sizing: border-box;
+  background: radial-gradient(rgba(176, 150, 255, 0.075) 1px, transparent 1px) 0 0 / 22px 22px, var(--bg-1);
+}
 .vl-canvas-empty { display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-lo); font-size: 13px; line-height: 1.6; padding: 0 24px; }
 .vl-grid-item { height: 100%; }
-.react-grid-item.react-grid-placeholder { background: var(--accent, #e0805f); opacity: 0.16; border-radius: var(--r-lg); }
+.react-grid-item.react-grid-placeholder { background: var(--accent); opacity: 0.16; border-radius: var(--r-lg); }
 .react-grid-item.react-draggable-dragging { z-index: 60; }
 .react-grid-item > .react-resizable-handle { z-index: 6; }
 

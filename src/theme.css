@@ -6,24 +6,33 @@
 @import "@fontsource/geist-mono/700.css";
 
 :root {
-  --bg-0: #0b0b0d;
-  --bg-1: #0e0e11;
-  --bg-2: #161619;
-  --bg-3: #1c1c21;
-  --bg-4: #24242b;
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border: rgba(255, 255, 255, 0.10);
-  --text-hi: #ececf0;
-  --text-mid: #b6b6bd;
-  --text-lo: #6f6f78;
-  --text-dim: #55555c;
-  --accent: #e0805f;
-  --accent-soft: rgba(224, 128, 95, 0.14);
-  --accent-border: rgba(224, 128, 95, 0.45);
-  --ok: #28c840;
-  --idle: #e0a33f;
-  --off: #5a5a60;
-  --danger: #d9483f;
+  --bg-0: #07060c;
+  --bg-1: #0c0a13;
+  --bg-2: #110e1b;
+  --bg-3: #171325;
+  --bg-4: #221c35;
+  --hover: rgba(176, 150, 255, 0.06);
+  --border-subtle: rgba(176, 150, 255, 0.08);
+  --border: rgba(176, 150, 255, 0.14);
+  --text-hi: #ece8f8;
+  --text-mid: #b3abcb;
+  --text-lo: #756c90;
+  --text-dim: #564e6f;
+  --accent: #9f7aff;
+  --accent-soft: rgba(159, 122, 255, 0.14);
+  --accent-border: rgba(159, 122, 255, 0.5);
+  --ok: #3fd694;
+  --idle: #f0b04a;
+  --off: #4d4760;
+  --danger: #f0525f;
+  --st-working: #b69cff;
+  --st-attention: #ffb84d;
+  --st-attention-soft: rgba(255, 184, 77, 0.1);
+  --st-attention-border: rgba(255, 184, 77, 0.55);
+  --st-waiting: #5ce6b8;
+  --st-waiting-soft: rgba(92, 230, 184, 0.08);
+  --st-waiting-border: rgba(92, 230, 184, 0.45);
+  --st-idle: #6a6285;
   --font-ui: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
   --r-sm: 7px;
@@ -31,7 +40,7 @@
   --r-lg: 14px;
   --r-xl: 18px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --shadow-tile: 0 8px 30px rgba(0, 0, 0, 0.45);
+  --shadow-tile: 0 10px 34px rgba(3, 2, 10, 0.55);
   --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
 }
 
@@ -47,6 +56,16 @@ body {
 
 @keyframes vl-breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
 @keyframes vl-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes vl-spin { to { transform: rotate(360deg); } }
+@keyframes vl-ping { 0% { box-shadow: 0 0 0 0 rgba(255, 184, 77, 0.6); } 70%, 100% { box-shadow: 0 0 0 7px rgba(255, 184, 77, 0); } }
+@keyframes vl-flash { from { opacity: 1; } to { opacity: 0; } }
+
+.vl-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; box-sizing: border-box; }
+.vl-dot.working { border: 1.5px solid var(--st-working); border-top-color: transparent; animation: vl-spin 0.9s linear infinite; }
+.vl-dot.attention { background: var(--st-attention); animation: vl-ping 1.6s var(--ease) infinite; }
+.vl-dot.waiting { background: var(--st-waiting); box-shadow: 0 0 10px rgba(92, 230, 184, 0.55); }
+.vl-dot.idle { border: 1.5px solid var(--st-idle); }
+.vl-dot.exited { background: var(--off); }
 
 /* Scrollbars — WebView2 is Chromium. Use ONLY ::-webkit-scrollbar: setting the
    standard scrollbar-width/scrollbar-color would disable these on Chromium 121+. */
@@ -58,5 +77,5 @@ body {
   border: 2px solid transparent;
   background-clip: padding-box;
 }
-::-webkit-scrollbar-thumb:hover { background: #3a3a44; }
+::-webkit-scrollbar-thumb:hover { background: #342b52; }
 ::-webkit-scrollbar-corner { background: transparent; }

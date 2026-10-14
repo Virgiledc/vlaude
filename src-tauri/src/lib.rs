@@ -1,3 +1,4 @@
+mod bus;
 mod pty;
 mod squad;
 mod wslfs;
@@ -22,7 +23,11 @@ fn pty_spawn(
     claude_session_id: Option<String>,
     on_data: Channel<InvokeResponseBody>,
 ) -> Result<(), String> {
-    state.spawn(id, distro, cwd, cols, rows, kind, env.unwrap_or_default(), claude_session_id, on_data)
+    let mut env = env.unwrap_or_default();
+    if let Some(dir) = bus::bus_wsl_dir() {
+        env.push(("VLAUDE_BUS".to_string(), dir));
+    }
+    state.spawn(id, distro, cwd, cols, rows, kind, env, claude_session_id, on_data)
 }
 
 #[tauri::command]
@@ -61,39 +66,22 @@ fn load_layout(app: tauri::AppHandle) -> Result<Option<String>, String> {
     fs::read_to_string(path).map(Some).map_err(|e| e.to_string())
 }
 
-fn favorites_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
-    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir.join("plugin_favorites.json"))
-}
-
-#[tauri::command]
-fn save_plugin_favorites(app: tauri::AppHandle, data: String) -> Result<(), String> {
-    let path = favorites_path(&app)?;
-    fs::write(path, data).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn load_plugin_favorites(app: tauri::AppHandle) -> Result<Option<String>, String> {
-    let path = favorites_path(&app)?;
-    if !path.exists() {
-        return Ok(None);
-    }
-    fs::read_to_string(path).map(Some).map_err(|e| e.to_string())
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .manage(PtyManager::default())
-        .setup(|_app| {
+        .setup(|app| {
             std::thread::spawn(|| {
                 if let Err(e) = squad::install_squad_assets() {
                     eprintln!("squad assets install failed: {e}");
                 }
+                if let Err(e) = bus::install_bus_assets() {
+                    eprintln!("bus assets install failed: {e}");
+                }
             });
+            bus::start_watcher(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -104,12 +92,11 @@ pub fn run() {
             wslfs::wsl_home,
             wslfs::wsl_read_file,
             wslfs::list_wsl_dirs,
-            wslfs::list_claude_plugins,
+            wslfs::index_wsl_dirs,
             save_layout,
             load_layout,
-            save_plugin_favorites,
-            load_plugin_favorites,
-            squad::squad_cli
+            squad::squad_cli,
+            bus::bus_publish_tiles
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

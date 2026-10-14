@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useSessions } from "../store/sessions";
+import { displayState, rollupState } from "../terminal/agentState";
 import "./WorkspaceTabs.css";
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 
 export function WorkspaceTabs({ onRequestCloseWorkspace }: Props) {
   const workspaces = useSessions((s) => s.workspaces);
+  const sessions = useSessions((s) => s.sessions);
   const activeId = useSessions((s) => s.activeWorkspaceId);
   const switchWorkspace = useSessions((s) => s.switchWorkspace);
   const createWorkspace = useSessions((s) => s.createWorkspace);
@@ -17,7 +19,9 @@ export function WorkspaceTabs({ onRequestCloseWorkspace }: Props) {
 
   return (
     <div className="vl-tabs">
-      {workspaces.map((w) => (
+      {workspaces.map((w) => {
+        const roll = rollupState(sessions.filter((s) => s.workspaceId === w.id).map(displayState));
+        return (
         <div
           key={w.id}
           className={`vl-tab${w.id === activeId ? " active" : ""}`}
@@ -39,6 +43,7 @@ export function WorkspaceTabs({ onRequestCloseWorkspace }: Props) {
             />
           ) : (
             <>
+              {roll && roll !== "idle" && roll !== "exited" && <span className={`vl-dot ${roll}`} />}
               <span className="vl-tab-name">{w.name}</span>
               {workspaces.length > 1 && (
                 <button
@@ -52,7 +57,8 @@ export function WorkspaceTabs({ onRequestCloseWorkspace }: Props) {
             </>
           )}
         </div>
-      ))}
+        );
+      })}
       <button className="vl-tab-new" title="Nouveau workspace" onClick={() => createWorkspace()}>
         +
       </button>

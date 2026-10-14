@@ -12,7 +12,7 @@ export function createPty(
   cols: number,
   rows: number,
   onData: (bytes: Uint8Array) => void,
-  kind: "claude" | "claudex" | "term" = "claude",
+  kind: "claude" | "claudex" | "codex" | "omp" | "term" = "claude",
   env?: Record<string, string>,
   claudeSessionId?: string
 ): PtyHandle {

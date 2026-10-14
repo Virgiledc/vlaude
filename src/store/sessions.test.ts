@@ -164,6 +164,20 @@ describe("sessions store", () => {
     expect(useSessions.getState().sessions.find((s) => s.id === id)!.kind).toBe("claudex");
   });
 
+  it("createSession with codex kind persists it through snapshot/hydrate", () => {
+    const id = useSessions.getState().createSession("/home/v/a", undefined, "codex");
+    const snap = useSessions.getState().snapshot();
+    useSessions.getState().hydrate(snap);
+    expect(useSessions.getState().sessions.find((s) => s.id === id)!.kind).toBe("codex");
+  });
+
+  it("createSession with omp kind persists it through snapshot/hydrate", () => {
+    const id = useSessions.getState().createSession("/home/v/a", undefined, "omp");
+    const snap = useSessions.getState().snapshot();
+    useSessions.getState().hydrate(snap);
+    expect(useSessions.getState().sessions.find((s) => s.id === id)!.kind).toBe("omp");
+  });
+
   it("hydrate falls back to claude for sessions without kind", () => {
     useSessions.getState().createSession("/home/v/a");
     const snap = useSessions.getState().snapshot();
@@ -220,6 +234,95 @@ describe("claudeSessionId", () => {
     reset();
     useSessions.getState().hydrate(snap);
     expect(useSessions.getState().sessions[0].claudeSessionId).toMatch(UUID_V4);
+  });
+});
+
+describe("agent state", () => {
+  beforeEach(reset);
+
+  it("applyDetected flags a finished turn as waiting when another tile has focus", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    const b = useSessions.getState().createSession("/home/v/b");
+    useSessions.getState().setFocus(b);
+    useSessions.getState().applyDetected(a, "idle", "working", true);
+    expect(useSessions.getState().sessions.find((s) => s.id === a)!.state).toBe("waiting");
+  });
+
+  it("applyDetected goes idle when the focused tile finishes in a focused window", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    useSessions.getState().applyDetected(a, "idle", "working", true);
+    expect(useSessions.getState().sessions[0].state).toBe("idle");
+  });
+
+  it("applyDetected still flags the focused tile when the window is in the background", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    useSessions.getState().applyDetected(a, "idle", "working", false);
+    expect(useSessions.getState().sessions[0].state).toBe("waiting");
+  });
+
+  it("setFocus marks a waiting session as seen", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    useSessions.getState().setSessionState(a, "waiting");
+    useSessions.getState().setFocus(a);
+    expect(useSessions.getState().sessions[0].state).toBe("idle");
+  });
+
+  it("setFocus leaves a blocked session blocked", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    useSessions.getState().setSessionState(a, "attention");
+    useSessions.getState().setFocus(a);
+    expect(useSessions.getState().sessions[0].state).toBe("attention");
+  });
+
+  it("revealSession switches workspace, reopens the tile, focuses it and bumps the reveal tick", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    useSessions.getState().setSessionState(a, "waiting");
+    useSessions.getState().removeFromCanvas(a);
+    useSessions.getState().createWorkspace("X");
+    const tick = useSessions.getState().revealTick;
+    useSessions.getState().revealSession(a);
+    const st = useSessions.getState();
+    const s = st.sessions.find((x) => x.id === a)!;
+    expect(st.activeWorkspaceId).toBe("ws-1");
+    expect(s.openInCanvas).toBe(true);
+    expect(s.state).toBe("idle");
+    expect(st.focusId).toBe(a);
+    expect(st.revealId).toBe(a);
+    expect(st.revealTick).toBe(tick + 1);
+  });
+
+  it("revealSession exits another tile's fullscreen", () => {
+    const a = useSessions.getState().createSession("/home/v/a");
+    const b = useSessions.getState().createSession("/home/v/b");
+    useSessions.getState().toggleFullscreen(b);
+    useSessions.getState().revealSession(a);
+    expect(useSessions.getState().fullscreenId).toBeNull();
+  });
+});
+
+describe("createSessions", () => {
+  beforeEach(reset);
+
+  it("creates N sessions of the same kind in the same cwd and workspace", () => {
+    const ids = useSessions.getState().createSessions("/home/v/a", 3, undefined, "codex");
+    const created = useSessions.getState().sessions;
+    expect(ids).toHaveLength(3);
+    expect(created.map((s) => s.id)).toEqual(ids);
+    expect(new Set(created.map((s) => s.cwd))).toEqual(new Set(["/home/v/a"]));
+    expect(new Set(created.map((s) => s.workspaceId))).toEqual(new Set(["ws-1"]));
+    expect(created.every((s) => s.kind === "codex")).toBe(true);
+    expect(new Set(created.map((s) => s.claudeSessionId)).size).toBe(3);
+  });
+
+  it("suffixes a given name when creating several sessions", () => {
+    useSessions.getState().createSessions("/home/v/a", 2, "front", "claude");
+    expect(useSessions.getState().sessions.map((s) => s.name)).toEqual(["front-1", "front-2"]);
+  });
+
+  it("keeps the name as is for a single session and falls back to session-N without a name", () => {
+    useSessions.getState().createSessions("/home/v/a", 1, "front", "claude");
+    useSessions.getState().createSessions("/home/v/a", 2, undefined, "claude");
+    expect(useSessions.getState().sessions.map((s) => s.name)).toEqual(["front", "session-2", "session-3"]);
   });
 });
 
