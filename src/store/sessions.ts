@@ -1,9 +1,10 @@
 import { create } from "zustand";
 import { clampSidebarWidth, SIDEBAR_WIDTH_DEFAULT } from "./sidebar";
+import { nextSessionState, type DetectedState } from "../terminal/agentState";
 
-export type SessionState = "working" | "waiting" | "attention" | "exited";
+export type SessionState = "working" | "attention" | "waiting" | "idle" | "exited";
 
-export type SessionLaunchKind = "claude" | "claudex";
+export type SessionLaunchKind = "claude" | "claudex" | "codex" | "omp";
 
 export interface Workspace {
   id: string;
@@ -44,7 +45,10 @@ interface AppState extends PersistedSnapshot {
   focusId: string | null;
   fullscreenId: string | null;
   views: Record<string, "claude" | "term">;
+  revealId: string | null;
+  revealTick: number;
   createSession: (cwd: string, name?: string, kind?: SessionLaunchKind) => string;
+  createSessions: (cwd: string, count: number, name?: string, kind?: SessionLaunchKind) => string[];
   openInCanvas: (id: string) => void;
   removeFromCanvas: (id: string) => void;
   closeSession: (id: string) => void;
@@ -53,6 +57,8 @@ interface AppState extends PersistedSnapshot {
   exitFullscreen: () => void;
   toggleView: (id: string) => void;
   setSessionState: (id: string, state: SessionState) => void;
+  applyDetected: (id: string, detected: DetectedState, prevDetected: DetectedState | null, appFocused: boolean) => void;
+  revealSession: (id: string) => void;
   respawnSession: (id: string) => void;
   reorderInZone: (workspaceId: string, cwd: string, orderedIds: string[]) => void;
   setLayout: (workspaceId: string, items: GridItem[]) => void;
@@ -83,6 +89,11 @@ const newUuid = (): string => {
   return u;
 };
 
+const markSeen = (sessions: Session[], id: string): Session[] =>
+  sessions.some((s) => s.id === id && s.state === "waiting")
+    ? sessions.map((s) => (s.id === id ? { ...s, state: "idle" as SessionState } : s))
+    : sessions;
+
 const FIRST_WS = "ws-1";
 const defaultWorkspaces = (): Workspace[] => [{ id: FIRST_WS, name: "Workspace 1" }];
 
@@ -93,6 +104,8 @@ export const useSessions = create<AppState>((set, get) => ({
   focusId: null,
   fullscreenId: null,
   views: {},
+  revealId: null,
+  revealTick: 0,
   counter: 0,
   workspaceCounter: 1,
   layouts: {},
@@ -122,6 +135,13 @@ export const useSessions = create<AppState>((set, get) => ({
     return id;
   },
 
+  createSessions: (cwd, count, name, kind) => {
+    const base = name?.trim();
+    return Array.from({ length: count }, (_, i) =>
+      get().createSession(cwd, base && count > 1 ? `${base}-${i + 1}` : base, kind)
+    );
+  },
+
   openInCanvas: (id) =>
     set((st) => ({
       sessions: st.sessions.map((s) => (s.id === id ? { ...s, openInCanvas: true } : s)),
@@ -141,7 +161,7 @@ export const useSessions = create<AppState>((set, get) => ({
       fullscreenId: st.fullscreenId === id ? null : st.fullscreenId,
     })),
 
-  setFocus: (id) => set({ focusId: id }),
+  setFocus: (id) => set((st) => ({ focusId: id, sessions: markSeen(st.sessions, id) })),
 
   toggleFullscreen: (id) =>
     set((st) => {
@@ -162,6 +182,30 @@ export const useSessions = create<AppState>((set, get) => ({
     set((st) => ({
       sessions: st.sessions.map((s) => (s.id === id ? { ...s, state } : s)),
     })),
+
+  applyDetected: (id, detected, prevDetected, appFocused) =>
+    set((st) => {
+      const target = st.sessions.find((s) => s.id === id);
+      if (!target) return st;
+      const seen = appFocused && st.focusId === id && target.workspaceId === st.activeWorkspaceId;
+      const state = nextSessionState(target.state, detected, prevDetected, seen);
+      if (state === target.state) return st;
+      return { sessions: st.sessions.map((s) => (s.id === id ? { ...s, state } : s)) };
+    }),
+
+  revealSession: (id) =>
+    set((st) => {
+      const target = st.sessions.find((s) => s.id === id);
+      if (!target) return st;
+      return {
+        activeWorkspaceId: target.workspaceId,
+        sessions: markSeen(st.sessions, id).map((s) => (s.id === id && !s.openInCanvas ? { ...s, openInCanvas: true } : s)),
+        focusId: id,
+        fullscreenId: st.fullscreenId === id ? id : null,
+        revealId: id,
+        revealTick: st.revealTick + 1,
+      };
+    }),
 
   respawnSession: (id) =>
     set((st) => ({

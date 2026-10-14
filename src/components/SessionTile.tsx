@@ -5,6 +5,7 @@ import { useSessions, type Session } from "../store/sessions";
 import { useSquad } from "../store/squad";
 import { useReload } from "../store/reload";
 import type { InjectionPhase } from "../store/injection";
+import { STATE_LABEL, needsYou } from "../terminal/agentState";
 import { invoke } from "@tauri-apps/api/core";
 import "./SessionTile.css";
 
@@ -55,13 +56,14 @@ export function SessionTile({ session, focused, fullscreen, onFocus, onRemove, o
   const manualInject = useSquad((s) => s.manualInject);
   const reloadPhase = useReload((s) => s.entries[session.id]?.phase);
   const startReload = useReload((s) => s.startReload);
+  const revealTick = useSessions((s) => (s.revealId === session.id ? s.revealTick : 0));
   const [termOpened, setTermOpened] = useState(false);
   useEffect(() => {
     if (view === "term") setTermOpened(true);
   }, [view]);
   return (
     <div
-      className={`vl-tile${focused ? " focused" : ""}`}
+      className={`vl-tile st-${session.state}${focused ? " focused" : ""}`}
       onMouseDown={onFocus}
       style={{ "--dir-color": `hsl(${hue} 55% 62%)` } as React.CSSProperties}
     >
@@ -69,7 +71,10 @@ export function SessionTile({ session, focused, fullscreen, onFocus, onRemove, o
         <span className="vl-dir-dot" />
         <span className={`vl-dot ${session.state}`} />
         <span className="vl-tile-name">{session.name}</span>
+        {needsYou(session.state) && <span className={`vl-tile-state ${session.state}`}>{STATE_LABEL[session.state]}</span>}
         {session.kind === "claudex" && <span className="vl-badge-gpt">GPT</span>}
+        {session.kind === "codex" && <span className="vl-badge-gpt">CODEX</span>}
+        {session.kind === "omp" && <span className="vl-badge-gpt">OMP</span>}
         <span className="vl-tile-dir">{prettyCwd(session.cwd)}</span>
         <span className="vl-tile-actions vl-no-drag">
           {role && (
@@ -102,6 +107,7 @@ export function SessionTile({ session, focused, fullscreen, onFocus, onRemove, o
           <button title="Fermer" className="cls" onClick={(e) => { e.stopPropagation(); onRequestClose(); }}>✕</button>
         </span>
       </div>
+      {revealTick > 0 && <span key={revealTick} className="vl-tile-flash" />}
       <div className="vl-tile-body">
         <div className="vl-term-layer" data-active={view === "claude"}>
           <TerminalView id={session.id} cwd={session.cwd} kind={session.kind} claudeSessionId={session.claudeSessionId} visible={session.openInCanvas && view === "claude"} fullscreen={fullscreen} />

@@ -8,7 +8,7 @@ const SQUAD_PY: &str = include_str!("../../bus/squad.py");
 const SKILL_PERE: &str = include_str!("../../skills/squad-pere/SKILL.md");
 const SKILL_FILS: &str = include_str!("../../skills/squad-fils/SKILL.md");
 
-fn write_wsl_file(path: &str, content: &str) -> Result<(), String> {
+pub(crate) fn write_wsl_file(path: &str, content: &str) -> Result<(), String> {
     let inner = format!("mkdir -p \"$(dirname {p})\" && cat > {p}", p = path);
     let mut cmd = Command::new("wsl.exe");
     cmd.arg("--").arg("bash").arg("-c").arg(inner).stdin(Stdio::piped());

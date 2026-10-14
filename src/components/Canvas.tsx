@@ -4,6 +4,7 @@ import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import { useSessions } from "../store/sessions";
 import { SessionTile } from "./SessionTile";
+import { getTerm } from "../terminal/termRegistry";
 import "./Canvas.css";
 
 const { WidthProvider } = ReactGridLayout;
@@ -12,6 +13,7 @@ type Layout = ReactGridLayout.Layout;
 const Grid = WidthProvider(ReactGridLayout);
 const COLS = 12;
 const ROW_HEIGHT = 36;
+const REVEAL_DELAY_MS = 80;
 
 interface Props {
   onRequestClose: (id: string) => void;
@@ -66,8 +68,22 @@ export function Canvas({ onRequestClose }: Props) {
   const workspaces = useSessions((s) => s.workspaces);
   const activeWorkspaceId = useSessions((s) => s.activeWorkspaceId);
   const fullscreenId = useSessions((s) => s.fullscreenId);
+  const revealTick = useSessions((s) => s.revealTick);
 
   useFullscreenHotkeys();
+
+  useEffect(() => {
+    if (revealTick === 0) return;
+    const t = setTimeout(() => {
+      const { revealId, views } = useSessions.getState();
+      if (!revealId) return;
+      document
+        .querySelector(`[data-session-id="${revealId}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+      getTerm(views[revealId] === "term" ? `${revealId}:term` : revealId)?.focus();
+    }, REVEAL_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [revealTick]);
 
   useEffect(() => {
     const t = setTimeout(() => window.dispatchEvent(new Event("resize")), 0);
@@ -143,7 +159,7 @@ function WorkspaceGrid({ workspaceId, onRequestClose }: { workspaceId: string } 
         }
       >
         {visible.map((s) => (
-          <div key={s.id} className={`vl-grid-item${fullscreenId === s.id ? " is-fullscreen" : ""}`}>
+          <div key={s.id} data-session-id={s.id} className={`vl-grid-item${fullscreenId === s.id ? " is-fullscreen" : ""}`}>
             <SessionTile
               session={s}
               focused={focusId === s.id}
