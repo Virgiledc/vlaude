@@ -11,6 +11,7 @@ import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useSquad } from "../store/squad";
 import { useReload } from "../store/reload";
 import { useSessions } from "../store/sessions";
+import { useTheme } from "../store/theme";
 import { detectAgentState, type DetectedState } from "./agentState";
 
 interface Props {
@@ -35,16 +36,14 @@ export function TerminalView({ id, cwd, kind = "claude", claudeSessionId, visibl
     if (!hostRef.current) return;
     let disposed = false;
     const term = new Terminal({
-      fontFamily: '"Geist Mono", ui-monospace, "JetBrains Mono", monospace',
+      fontFamily: '"JetBrainsMono Nerd Font", "JetBrains Mono", monospace',
       fontSize: 13,
       cursorBlink: true,
       ignoreBracketedPasteMode: kind === "term",
-      theme: {
-        background: "#0c0a13",
-        foreground: "#cfc9e2",
-        cursor: "#b69cff",
-        selectionBackground: "rgba(159, 122, 255, 0.32)",
-      },
+      theme: useTheme.getState().xterm,
+    });
+    const themeUnsub = useTheme.subscribe((s, prev) => {
+      if (s.xterm !== prev.xterm) term.options.theme = s.xterm;
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
@@ -63,8 +62,8 @@ export function TerminalView({ id, cwd, kind = "claude", claudeSessionId, visibl
       if (e.code === "KeyV") {
         e.preventDefault();
         readText()
-          .then((t) => { if (t) term.paste(t); })
-          .catch((err) => console.error("clipboard readText failed", err));
+          .then((t) => { if (t) term.paste(t); else term.input("\x16"); })
+          .catch(() => term.input("\x16"));
         return false;
       }
       return true;
@@ -89,8 +88,8 @@ export function TerminalView({ id, cwd, kind = "claude", claudeSessionId, visibl
       term.loadAddon(webgl);
     } catch (e) { console.warn("WebGL off", e); }
     fit.fit();
-    if (!document.fonts.check('700 13px "Geist Mono"')) {
-      document.fonts.load('700 13px "Geist Mono"').then(() => {
+    if (!document.fonts.check('700 13px "JetBrainsMono Nerd Font"')) {
+      document.fonts.load('700 13px "JetBrainsMono Nerd Font"').then(() => {
         if (!disposed) term.clearTextureAtlas();
       }).catch(() => {});
     }
@@ -160,6 +159,7 @@ export function TerminalView({ id, cwd, kind = "claude", claudeSessionId, visibl
     registerTerm(id, term);
     return () => {
       disposed = true;
+      themeUnsub();
       if (timer !== null) clearTimeout(timer);
       if (probe !== null) clearInterval(probe);
       ro.disconnect();

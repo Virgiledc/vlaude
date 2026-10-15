@@ -17,6 +17,7 @@ const REVEAL_DELAY_MS = 80;
 
 interface Props {
   onRequestClose: (id: string) => void;
+  onNewSession: () => void;
 }
 
 function useFullscreenHotkeys() {
@@ -64,7 +65,7 @@ function useFullscreenHotkeys() {
   }, [toggleFullscreen, exitFullscreen, toggleView]);
 }
 
-export function Canvas({ onRequestClose }: Props) {
+export function Canvas({ onRequestClose, onNewSession }: Props) {
   const workspaces = useSessions((s) => s.workspaces);
   const activeWorkspaceId = useSessions((s) => s.activeWorkspaceId);
   const fullscreenId = useSessions((s) => s.fullscreenId);
@@ -98,14 +99,14 @@ export function Canvas({ onRequestClose }: Props) {
           className="vl-workspace-layer"
           style={{ visibility: w.id === activeWorkspaceId ? "visible" : "hidden" }}
         >
-          <WorkspaceGrid workspaceId={w.id} onRequestClose={onRequestClose} />
+          <WorkspaceGrid workspaceId={w.id} onRequestClose={onRequestClose} onNewSession={onNewSession} />
         </div>
       ))}
     </div>
   );
 }
 
-function WorkspaceGrid({ workspaceId, onRequestClose }: { workspaceId: string } & Props) {
+function WorkspaceGrid({ workspaceId, onRequestClose, onNewSession }: { workspaceId: string } & Props) {
   const sessions = useSessions((s) => s.sessions);
   const focusId = useSessions((s) => s.focusId);
   const fullscreenId = useSessions((s) => s.fullscreenId);
@@ -132,7 +133,12 @@ function WorkspaceGrid({ workspaceId, onRequestClose }: { workspaceId: string } 
   if (visible.length === 0) {
     return (
       <div className="vl-canvas vl-canvas-empty">
-        Aucune session ouverte. Double-clique une session dans la barre latérale, ou crée-en une.
+        <p>Aucune session ouverte dans ce workspace.</p>
+        <button className="vl-act primary" onClick={onNewSession}>
+          <span>Nouvelle session</span>
+          <kbd>Ctrl Maj N</kbd>
+        </button>
+        <p className="vl-canvas-hint">Une session en pause se rouvre d'un clic dans la barre latérale.</p>
       </div>
     );
   }

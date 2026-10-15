@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export const wslHome = () => invoke<string>("wsl_home");
-export const listWslDirs = (path: string) => invoke<string[]>("list_wsl_dirs", { path });
-export const indexWslDirs = () => invoke<string[]>("index_wsl_dirs");
+export const homeDir = () => invoke<string>("home_dir");
+export const readFile = (path: string) => invoke<string | null>("read_file", { path });
+export const listDirs = (path: string) => invoke<string[]>("list_dirs", { path });
+export const indexDirs = () => invoke<string[]>("index_dirs");

@@ -1,4 +1,5 @@
-import { invoke, Channel } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
+import { subscribePty, unsubscribePty } from "./ptyStream";
 
 export interface PtyHandle {
   write: (data: string) => void;
@@ -16,19 +17,17 @@ export function createPty(
   env?: Record<string, string>,
   claudeSessionId?: string
 ): PtyHandle {
-  const channel = new Channel<ArrayBuffer | Uint8Array>();
-  channel.onmessage = (msg) => {
-    onData(msg instanceof Uint8Array ? msg : new Uint8Array(msg));
-  };
-
-  invoke("pty_spawn", {
-    id, distro: null, cwd, cols, rows, kind,
-    env: env ? Object.entries(env) : null,
-    claudeSessionId: claudeSessionId ?? null,
-    onData: channel,
-  }).catch(
-    (e) => console.error("pty_spawn failed", e)
-  );
+  let closed = false;
+  subscribePty(id, onData)
+    .then(() => {
+      if (closed) return;
+      return invoke("pty_spawn", {
+        id, cwd, cols, rows, kind,
+        env: env ? Object.entries(env) : null,
+        claudeSessionId: claudeSessionId ?? null,
+      });
+    })
+    .catch((e) => console.error("pty_spawn failed", e));
 
   const encoder = new TextEncoder();
   return {
@@ -37,6 +36,10 @@ export function createPty(
         (e) => console.error("pty_write failed", e)
       ),
     resize: (c, r) => invoke("pty_resize", { id, cols: c, rows: r }).catch(() => {}),
-    close: () => invoke("pty_close", { id }).catch(() => {}),
+    close: () => {
+      closed = true;
+      unsubscribePty(id, onData);
+      invoke("pty_close", { id }).catch(() => {});
+    },
   };
 }

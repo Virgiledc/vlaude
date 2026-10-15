@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectAgentState, displayState, nextSessionState, rollupState } from "./agentState";
+import { detectAgentState, displayState, nextSessionState } from "./agentState";
 import type { Session } from "../store/sessions";
 
 const PROMPT_BOX = [
@@ -129,19 +129,6 @@ describe("nextSessionState", () => {
 
   it("keeps waiting sticky until seen", () => {
     expect(nextSessionState("waiting", "idle", "idle", false)).toBe("waiting");
-  });
-});
-
-describe("rollupState", () => {
-  it("is null without sessions", () => {
-    expect(rollupState([])).toBeNull();
-  });
-
-  it("picks the most urgent state", () => {
-    expect(rollupState(["idle", "working"])).toBe("working");
-    expect(rollupState(["working", "waiting", "idle"])).toBe("waiting");
-    expect(rollupState(["waiting", "attention", "working"])).toBe("attention");
-    expect(rollupState(["exited", "idle"])).toBe("idle");
   });
 });
 

@@ -15,7 +15,8 @@
         "title": "Vlaude",
         "width": 1280,
         "height": 820,
-        "maximized": true
+        "maximized": true,
+        "decorations": false
       }
     ],
     "security": {

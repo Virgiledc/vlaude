@@ -1,20 +1,27 @@
+import { useState } from "react";
 import { useSessions } from "../store/sessions";
 import { groupByPath, prettyCwd } from "../store/grouping";
-import { STATE_LABEL, displayState, needsYou, rollupState } from "../terminal/agentState";
+import { STATE_LABEL, displayState, needsYou } from "../terminal/agentState";
+import { KindLabel } from "./KindLabel";
 import "./Sidebar.css";
 
 interface Props {
   onNewSession: () => void;
   onNewSquad: () => void;
+  onRequestCloseWorkspace: (id: string) => void;
 }
 
-export function Sidebar({ onNewSession, onNewSquad }: Props) {
+export function Sidebar({ onNewSession, onNewSquad, onRequestCloseWorkspace }: Props) {
   const sessions = useSessions((s) => s.sessions);
   const workspaces = useSessions((s) => s.workspaces);
   const focusId = useSessions((s) => s.focusId);
   const activeWorkspaceId = useSessions((s) => s.activeWorkspaceId);
   const revealSession = useSessions((s) => s.revealSession);
   const switchWorkspace = useSessions((s) => s.switchWorkspace);
+  const createWorkspace = useSessions((s) => s.createWorkspace);
+  const renameWorkspace = useSessions((s) => s.renameWorkspace);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
 
   const pending = sessions.filter((s) => needsYou(displayState(s)));
   const blocked = pending.filter((s) => displayState(s) === "attention");
@@ -26,34 +33,66 @@ export function Sidebar({ onNewSession, onNewSquad }: Props) {
     if (target) revealSession(target.id);
   };
 
+  const commitRename = (id: string) => {
+    renameWorkspace(id, draft);
+    setEditingId(null);
+  };
+
   return (
     <div className="vl-sidebar">
       <div className="vl-side-head">
-        <span className="vl-brand">Vlaude</span>
+        <span className="vl-brand">vlaude</span>
         {pending.length > 0 ? (
           <button
-            className={`vl-side-pending ${blocked.length > 0 ? "attention" : "waiting"}`}
+            className={`vl-side-pending${blocked.length > 0 ? " attention" : ""}`}
             title="Aller à la prochaine session qui t'attend"
             onClick={goToNextPending}
           >
-            <span className={`vl-dot ${blocked.length > 0 ? "attention" : "waiting"}`} />
             {pending.length} t'attend{pending.length > 1 ? "ent" : ""}
           </button>
         ) : (
-          <span className="vl-side-calm">{working > 0 ? `${working} en cours` : "Tout est calme"}</span>
+          <span className="vl-side-calm">{working > 0 ? `${working} au travail` : "Tout est calme"}</span>
         )}
       </div>
       <div className="vl-sidebar-scroll">
-        {workspaces.map((w) => {
+        {workspaces.map((w, i) => {
           const list = groupByPath(sessions, w.id).flatMap((g) => g.sessions);
-          const roll = rollupState(list.map(displayState));
           return (
             <section key={w.id} className={`vl-side-ws${w.id === activeWorkspaceId ? " active" : ""}`}>
-              <button className="vl-side-wshead" onClick={() => switchWorkspace(w.id)}>
-                <span className="vl-side-wsname">{w.name}</span>
-                {roll && roll !== "idle" && roll !== "exited" && <span className={`vl-dot ${roll}`} />}
+              <div
+                className="vl-side-wshead"
+                title={i < 9 ? `Ctrl+${i + 1}. Double-clic pour renommer.` : "Double-clic pour renommer."}
+                onClick={() => switchWorkspace(w.id)}
+                onDoubleClick={() => { setEditingId(w.id); setDraft(w.name); }}
+              >
+                <span className="vl-side-wsnum">{i + 1}</span>
+                {editingId === w.id ? (
+                  <input
+                    className="vl-side-wsedit"
+                    autoFocus
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onBlur={() => commitRename(w.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitRename(w.id);
+                      if (e.key === "Escape") setEditingId(null);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <span className="vl-side-wsname">{w.name}</span>
+                )}
                 <span className="vl-side-wscount">{list.length}</span>
-              </button>
+                {workspaces.length > 1 && (
+                  <button
+                    className="vl-side-wsclose"
+                    title="Fermer le workspace"
+                    onClick={(e) => { e.stopPropagation(); onRequestCloseWorkspace(w.id); }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               {list.length === 0 && <div className="vl-side-empty">Aucune session</div>}
               {list.map((s) => {
                 const state = displayState(s);
@@ -67,9 +106,7 @@ export function Sidebar({ onNewSession, onNewSquad }: Props) {
                     <div className="vl-side-main">
                       <div className="vl-side-line">
                         <span className="vl-side-name">{s.name}</span>
-                        {s.kind === "claudex" && <span className="vl-badge-gpt">GPT</span>}
-                        {s.kind === "codex" && <span className="vl-badge-gpt">CODEX</span>}
-                        {s.kind === "omp" && <span className="vl-badge-gpt">OMP</span>}
+                        <KindLabel kind={s.kind} />
                       </div>
                       <div className="vl-side-sub">
                         <span className="vl-side-status">{STATE_LABEL[state]}</span>
@@ -82,9 +119,16 @@ export function Sidebar({ onNewSession, onNewSquad }: Props) {
             </section>
           );
         })}
+        <button className="vl-side-addws" onClick={() => createWorkspace()}>+ Nouveau workspace</button>
       </div>
-      <button className="vl-new" onClick={onNewSession}>+ Nouvelle session</button>
-      <button className="vl-new vl-new-squad" onClick={onNewSquad}>⛓ Nouvelle escouade</button>
+      <div className="vl-side-foot">
+        <button className="vl-act primary" title="Ctrl+Maj+N" onClick={onNewSession}>
+          <span>Nouvelle session</span>
+        </button>
+        <button className="vl-act" onClick={onNewSquad}>
+          <span>Nouvelle escouade</span>
+        </button>
+      </div>
     </div>
   );
 }

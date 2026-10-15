@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import { wslHome } from "./wslfs";
+import { homeDir } from "./files";
 import { useSessions } from "./sessions";
 import { planInjections, injectionPayload, newInjectionEntry, featurePayload } from "./injection";
 import type { InjectionEntry, InjectionView } from "./injection";
@@ -112,7 +112,7 @@ export const useSquad = create<SquadStore>((set, get) => ({
     const squadId = "sq-" + uuid().slice(0, 8);
     const pereToken = uuid();
     await squadCli(cwd, ["init", "--squad-id", squadId, "--pere-token", pereToken, "--cwd", cwd]);
-    const home = (await wslHome()) || "/home";
+    const home = (await homeDir()) || "/home";
     const env = squadEnv(home, cwd, pereToken);
     const id = useSessions.getState().createSession(cwd, name || "père");
     set((st) => ({
@@ -135,7 +135,7 @@ export const useSquad = create<SquadStore>((set, get) => ({
       "add-member", "--member-token", filsToken, "--squad-id", active.squadId,
       "--role", "fils", "--name", filsName, "--cwd", active.cwd,
     ]);
-    const home = (await wslHome()) || "/home";
+    const home = (await homeDir()) || "/home";
     const env = squadEnv(home, active.cwd, filsToken);
     const id = useSessions.getState().createSession(active.cwd, filsName);
     set((st) => ({

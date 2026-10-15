@@ -1,3 +1,4 @@
 pub mod coalesce;
+pub mod frame;
 pub mod manager;
-pub mod wsl;
+pub mod shell;

@@ -65,7 +65,7 @@ import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { useSessions } from "./sessions";
 import { featurePayload } from "./injection";
-import { wslHome } from "./wslfs";
+import { homeDir, readFile } from "./files";
 import { getTerm } from "../terminal/termRegistry";
 
 const encoder = new TextEncoder();
@@ -91,7 +91,7 @@ export const useReload = create<ReloadStore>((set, get) => ({
     if (active === "recapping" || active === "clearing") return;
     const session = useSessions.getState().sessions.find((s) => s.id === sessionId);
     if (!session) return;
-    const home = (await wslHome()) || "/home";
+    const home = (await homeDir()) || "/home";
     const { handoffPath, donePath } = reloadPaths(home, session.claudeSessionId);
     const entry: ReloadEntry = {
       sessionId,
@@ -132,8 +132,8 @@ export const useReload = create<ReloadStore>((set, get) => ({
       let doneContent: string | null = null;
       let handoffContent: string | null = null;
       try {
-        doneContent = await invoke<string | null>("wsl_read_file", { path: e.donePath });
-        if (doneContent !== null) handoffContent = await invoke<string | null>("wsl_read_file", { path: e.handoffPath });
+        doneContent = await readFile(e.donePath);
+        if (doneContent !== null) handoffContent = await readFile(e.handoffPath);
       } catch {
         continue;
       }

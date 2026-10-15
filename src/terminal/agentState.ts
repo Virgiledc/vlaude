@@ -64,17 +64,10 @@ export function nextSessionState(
   return current === "waiting" ? "waiting" : "idle";
 }
 
-const URGENCY: SessionState[] = ["attention", "waiting", "working", "idle", "exited"];
-
-export function rollupState(states: SessionState[]): SessionState | null {
-  for (const s of URGENCY) if (states.includes(s)) return s;
-  return null;
-}
-
 export const STATE_LABEL: Record<SessionState, string> = {
   working: "Travaille…",
   attention: "Attend ta décision",
-  waiting: "A fini · à toi",
+  waiting: "A fini, à toi",
   idle: "Au repos",
   exited: "En pause",
 };

@@ -7,13 +7,8 @@ import { useReload } from "../store/reload";
 import type { InjectionPhase } from "../store/injection";
 import { STATE_LABEL, needsYou } from "../terminal/agentState";
 import { invoke } from "@tauri-apps/api/core";
+import { KindLabel } from "./KindLabel";
 import "./SessionTile.css";
-
-const cwdHue = (cwd: string): number => {
-  let h = 0;
-  for (let i = 0; i < cwd.length; i++) h = (h * 31 + cwd.charCodeAt(i)) % 360;
-  return h;
-};
 
 const encoder = new TextEncoder();
 
@@ -48,7 +43,6 @@ interface Props {
 }
 
 export function SessionTile({ session, focused, fullscreen, onFocus, onRemove, onRequestClose, onToggleFullscreen }: Props) {
-  const hue = cwdHue(session.cwd);
   const view = useSessions((s) => s.views[session.id] ?? "claude");
   const toggleView = useSessions((s) => s.toggleView);
   const role = useSquad((s) => s.roleById[session.id]);
@@ -65,17 +59,13 @@ export function SessionTile({ session, focused, fullscreen, onFocus, onRemove, o
     <div
       className={`vl-tile st-${session.state}${focused ? " focused" : ""}`}
       onMouseDown={onFocus}
-      style={{ "--dir-color": `hsl(${hue} 55% 62%)` } as React.CSSProperties}
     >
       <div className="vl-tile-bar">
-        <span className="vl-dir-dot" />
         <span className={`vl-dot ${session.state}`} />
         <span className="vl-tile-name">{session.name}</span>
-        {needsYou(session.state) && <span className={`vl-tile-state ${session.state}`}>{STATE_LABEL[session.state]}</span>}
-        {session.kind === "claudex" && <span className="vl-badge-gpt">GPT</span>}
-        {session.kind === "codex" && <span className="vl-badge-gpt">CODEX</span>}
-        {session.kind === "omp" && <span className="vl-badge-gpt">OMP</span>}
+        <KindLabel kind={session.kind} />
         <span className="vl-tile-dir">{prettyCwd(session.cwd)}</span>
+        {needsYou(session.state) && <span className="vl-tile-state">{STATE_LABEL[session.state]}</span>}
         <span className="vl-tile-actions vl-no-drag">
           {role && (
             <button
@@ -102,9 +92,15 @@ export function SessionTile({ session, focused, fullscreen, onFocus, onRemove, o
           <button title="Booster ce claude : /effort ultracode (sans lien avec l'escouade)" className="cmd" onClick={(e) => { e.stopPropagation(); sendCommand(session.id, "/effort ultracode"); }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
           </button>
-          <button title={fullscreen ? "Quitter le plein écran (Ctrl+E / Échap)" : "Plein écran (Ctrl+E)"} className={`full${fullscreen ? " active" : ""}`} onClick={(e) => { e.stopPropagation(); onToggleFullscreen(); }}>⛶</button>
-          <button title="Enlever de la page" className="rem" onClick={(e) => { e.stopPropagation(); onRemove(); }}>◳</button>
-          <button title="Fermer" className="cls" onClick={(e) => { e.stopPropagation(); onRequestClose(); }}>✕</button>
+          <button title={fullscreen ? "Quitter le plein écran (Ctrl+E / Échap)" : "Plein écran (Ctrl+E)"} className={`cmd${fullscreen ? " active" : ""}`} onClick={(e) => { e.stopPropagation(); onToggleFullscreen(); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          </button>
+          <button title="Mettre en pause (retirer de l'écran)" className="cmd" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg>
+          </button>
+          <button title="Fermer" className="cmd cls" onClick={(e) => { e.stopPropagation(); onRequestClose(); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
         </span>
       </div>
       {revealTick > 0 && <span key={revealTick} className="vl-tile-flash" />}

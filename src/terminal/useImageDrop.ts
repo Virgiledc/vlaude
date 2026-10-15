@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useSessions } from "../store/sessions";
 import { getTerm } from "./termRegistry";
-import { winToWslPath } from "./winToWsl";
 
 export function useImageDrop(): void {
   useEffect(() => {
@@ -17,7 +16,7 @@ export function useImageDrop(): void {
         const term = getTerm(id);
         if (!term) return;
         for (const path of event.payload.paths) {
-          term.paste(winToWslPath(path) + " ");
+          term.paste(path + " ");
         }
         term.focus();
       })

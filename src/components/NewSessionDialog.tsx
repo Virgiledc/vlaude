@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { wslHome, listWslDirs, indexWslDirs } from "../store/wslfs";
+import { homeDir, listDirs, indexDirs } from "../store/files";
 import type { SessionLaunchKind } from "../store/sessions";
 import {
   addRecent, parseRecents, recencyBucket, searchDirs, timeAgo, tildify, type Recent,
@@ -61,7 +61,7 @@ export function NewSessionDialog({ open, onClose, onCreate, mode = "session" }: 
     setCwd(path);
     const req = ++reqRef.current;
     setLoading(true);
-    listWslDirs(path)
+    listDirs(path)
       .then((d) => { if (req === reqRef.current) setDirs(d); })
       .catch(() => { if (req === reqRef.current) setDirs([]); })
       .finally(() => { if (req === reqRef.current) setLoading(false); });
@@ -77,13 +77,13 @@ export function NewSessionDialog({ open, onClose, onCreate, mode = "session" }: 
     setCount(1);
     setView(rs.length ? "recents" : "browse");
     if (rs.length) setCwd(rs[0].path);
-    wslHome().catch(() => "").then((h) => {
+    homeDir().catch(() => "").then((h) => {
       const root = h || "/home";
       setHome(h);
       if (!rs.length) browse(root);
     });
     setIndexing(true);
-    indexWslDirs().then(setIndex).catch(() => {}).finally(() => setIndexing(false));
+    indexDirs().then(setIndex).catch(() => {}).finally(() => setIndexing(false));
   }, [open]);
 
   const searching = query.trim() !== "";
@@ -240,7 +240,7 @@ export function NewSessionDialog({ open, onClose, onCreate, mode = "session" }: 
             <div className="vl-list" role="listbox" ref={listRef}>
               {rows.length === 0 && (
                 <div className="vl-empty">
-                  {!searching ? "Aucun projet récent — cherche ou parcours"
+                  {!searching ? "Aucun projet récent. Cherche un dossier ou parcours."
                     : indexing && index.length === 0 ? "Indexation des dossiers…"
                     : "Aucun dossier ne correspond"}
                 </div>
@@ -259,7 +259,7 @@ export function NewSessionDialog({ open, onClose, onCreate, mode = "session" }: 
           )}
         </div>
 
-        <label>Dossier WSL</label>
+        <label>Dossier</label>
         <input
           className="vl-input"
           value={cwd}
@@ -290,7 +290,7 @@ export function NewSessionDialog({ open, onClose, onCreate, mode = "session" }: 
                 type="button"
                 className={kind === "claudex" ? "active" : ""}
                 onClick={() => setKind("claudex")}
-              >claudex · GPT</button>
+              >claudex (gpt)</button>
               <button
                 type="button"
                 className={kind === "codex" ? "active" : ""}

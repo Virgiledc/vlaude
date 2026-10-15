@@ -1,81 +1,97 @@
-@import "@fontsource/geist-sans/400.css";
-@import "@fontsource/geist-sans/500.css";
-@import "@fontsource/geist-sans/600.css";
-@import "@fontsource/geist-mono/400.css";
-@import "@fontsource/geist-mono/500.css";
-@import "@fontsource/geist-mono/700.css";
-
 :root {
-  --bg-0: #07060c;
-  --bg-1: #0c0a13;
-  --bg-2: #110e1b;
-  --bg-3: #171325;
-  --bg-4: #221c35;
-  --hover: rgba(176, 150, 255, 0.06);
-  --border-subtle: rgba(176, 150, 255, 0.08);
-  --border: rgba(176, 150, 255, 0.14);
-  --text-hi: #ece8f8;
-  --text-mid: #b3abcb;
-  --text-lo: #756c90;
-  --text-dim: #564e6f;
-  --accent: #9f7aff;
-  --accent-soft: rgba(159, 122, 255, 0.14);
-  --accent-border: rgba(159, 122, 255, 0.5);
-  --ok: #3fd694;
-  --idle: #f0b04a;
-  --off: #4d4760;
-  --danger: #f0525f;
-  --st-working: #b69cff;
-  --st-attention: #ffb84d;
-  --st-attention-soft: rgba(255, 184, 77, 0.1);
-  --st-attention-border: rgba(255, 184, 77, 0.55);
-  --st-waiting: #5ce6b8;
-  --st-waiting-soft: rgba(92, 230, 184, 0.08);
-  --st-waiting-border: rgba(92, 230, 184, 0.45);
-  --st-idle: #6a6285;
-  --font-ui: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
-  --r-sm: 7px;
-  --r-md: 10px;
-  --r-lg: 14px;
-  --r-xl: 18px;
+  --c-bg: #16242d;
+  --c-bg-dark: #101b21;
+  --c-bg-darker: #0b1216;
+  --c-bg-lighter: #1b2d40;
+  --c-fg: #d6e2ee;
+  --c-fg-dark: #4d86b0;
+  --c-fg-bright: #f2fcff;
+  --c-accent: #8bc9eb;
+  --c-selection: #243d56;
+  --c-muted: #304860;
+  --c-active-border: var(--c-fg-bright);
+  --c-glow: var(--c-accent);
+  --c-red: #4d86b0;
+  --c-yellow: #6fa4c9;
+  --c-green: #5e95bc;
+
+  --bg-0: var(--c-bg-darker);
+  --bg-1: var(--c-bg);
+  --bg-2: var(--c-bg-dark);
+  --bg-3: var(--c-bg-lighter);
+  --bg-4: var(--c-selection);
+  --hover: color-mix(in srgb, var(--c-accent) 7%, transparent);
+  --border-subtle: color-mix(in srgb, var(--c-muted) 55%, transparent);
+  --border: var(--c-muted);
+  --text-bright: var(--c-fg-bright);
+  --text-hi: var(--c-fg);
+  --text-mid: color-mix(in srgb, var(--c-fg) 72%, var(--c-bg));
+  --text-lo: var(--c-fg-dark);
+  --text-dim: color-mix(in srgb, var(--c-fg-dark) 70%, var(--c-bg));
+  --accent: var(--c-accent);
+  --accent-soft: color-mix(in srgb, var(--c-accent) 13%, transparent);
+  --accent-border: color-mix(in srgb, var(--c-accent) 50%, transparent);
+  --ok: var(--c-green);
+  --idle: var(--c-yellow);
+  --off: var(--c-muted);
+  --danger: var(--c-red);
+  --st-working: var(--c-accent);
+  --st-attention: var(--c-fg-bright);
+  --st-attention-ink: var(--c-bg-darker);
+  --st-waiting: var(--c-accent);
+  --st-idle: var(--c-muted);
+
+  --win-border: 1px;
+  --win-gap: 10px;
+  --win-inactive: color-mix(in srgb, var(--c-muted) 60%, transparent);
+  --win-active: color-mix(in srgb, var(--c-active-border) 40%, transparent);
+  --win-glow: 0 0 0 transparent;
+
+  --font-ui: "JetBrainsMono Nerd Font", "JetBrains Mono", ui-monospace, monospace;
+  --font-mono: var(--font-ui);
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --shadow-tile: 0 10px 34px rgba(3, 2, 10, 0.55);
-  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --shadow-modal: 0 18px 50px rgba(0, 0, 0, 0.5);
 }
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 body {
-  background: var(--bg-1);
+  background: var(--bg-0);
   color: var(--text-hi);
   font-family: var(--font-ui);
+  font-size: var(--fs-md);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
+button { font-family: inherit; }
+:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 
 @keyframes vl-breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
-@keyframes vl-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes vl-spin { to { transform: rotate(360deg); } }
-@keyframes vl-ping { 0% { box-shadow: 0 0 0 0 rgba(255, 184, 77, 0.6); } 70%, 100% { box-shadow: 0 0 0 7px rgba(255, 184, 77, 0); } }
 @keyframes vl-flash { from { opacity: 1; } to { opacity: 0; } }
+@keyframes vl-summon { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 
-.vl-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; box-sizing: border-box; }
-.vl-dot.working { border: 1.5px solid var(--st-working); border-top-color: transparent; animation: vl-spin 0.9s linear infinite; }
-.vl-dot.attention { background: var(--st-attention); animation: vl-ping 1.6s var(--ease) infinite; }
-.vl-dot.waiting { background: var(--st-waiting); box-shadow: 0 0 10px rgba(92, 230, 184, 0.55); }
+.vl-dot { width: 7px; height: 7px; flex: none; box-sizing: border-box; }
+.vl-dot.working { border: 1.5px solid var(--st-working); border-top-color: transparent; border-radius: 50%; animation: vl-spin 0.9s linear infinite; }
+.vl-dot.attention { background: var(--st-attention); box-shadow: 0 0 8px var(--st-attention); animation: vl-summon 1.4s ease-in-out infinite; }
+.vl-dot.waiting { background: var(--st-waiting); }
 .vl-dot.idle { border: 1.5px solid var(--st-idle); }
-.vl-dot.exited { background: var(--off); }
+.vl-dot.exited { background: var(--off); opacity: 0.6; }
 
-/* Scrollbars — WebView2 is Chromium. Use ONLY ::-webkit-scrollbar: setting the
-   standard scrollbar-width/scrollbar-color would disable these on Chromium 121+. */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--bg-4);
-  border-radius: 8px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
+.vl-kind {
+  flex: none; font-size: var(--fs-xs); line-height: 1; color: var(--text-lo);
 }
-::-webkit-scrollbar-thumb:hover { background: #342b52; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-subtle); border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--border); background-clip: padding-box; }
 ::-webkit-scrollbar-corner { background: transparent; }

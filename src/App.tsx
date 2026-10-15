@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { Canvas } from "./components/Canvas";
-import { WorkspaceTabs } from "./components/WorkspaceTabs";
 import { NewSessionDialog } from "./components/NewSessionDialog";
 import { ConfirmCloseModal } from "./components/ConfirmCloseModal";
 import { SidebarResizer } from "./components/SidebarResizer";
@@ -11,6 +10,7 @@ import { useImageDrop } from "./terminal/useImageDrop";
 import { SquadPanel } from "./components/SquadPanel";
 import { useSquad } from "./store/squad";
 import { startBusPublish } from "./store/bus";
+import { useTheme } from "./store/theme";
 import "./App.css";
 
 export default function App() {
@@ -27,6 +27,35 @@ export default function App() {
   const [ready, setReady] = useState(false);
 
   useImageDrop();
+
+  useEffect(() => {
+    const refresh = () => { useTheme.getState().refresh(); };
+    refresh();
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || e.altKey || e.metaKey) return;
+      if (e.shiftKey && e.code === "KeyN") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        setDialogMode("session");
+        return;
+      }
+      const digit = !e.shiftKey && /^Digit[1-9]$/.test(e.code) ? Number(e.code.slice(5)) : 0;
+      if (!digit) return;
+      const { workspaces: list, switchWorkspace } = useSessions.getState();
+      const target = list[digit - 1];
+      if (!target) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      switchWorkspace(target.id);
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, []);
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -52,12 +81,15 @@ export default function App() {
   return (
     <div className="vl-app">
       <div className="vl-left">
-        <Sidebar onNewSession={() => setDialogMode("session")} onNewSquad={() => setDialogMode("squad")} />
+        <Sidebar
+          onNewSession={() => setDialogMode("session")}
+          onNewSquad={() => setDialogMode("squad")}
+          onRequestCloseWorkspace={setCloseWsId}
+        />
       </div>
       <SidebarResizer />
       <div className="vl-main">
-        <WorkspaceTabs onRequestCloseWorkspace={setCloseWsId} />
-        <Canvas onRequestClose={setCloseId} />
+        <Canvas onRequestClose={setCloseId} onNewSession={() => setDialogMode("session")} />
       </div>
       <SquadPanel />
       <NewSessionDialog
