@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Sidebar } from "./components/Sidebar";
 import { Canvas } from "./components/Canvas";
 import { NewSessionDialog } from "./components/NewSessionDialog";
@@ -25,8 +26,29 @@ export default function App() {
   const [closeId, setCloseId] = useState<string | null>(null);
   const [closeWsId, setCloseWsId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [quitAsk, setQuitAsk] = useState(false);
 
   useImageDrop();
+
+  useEffect(() => {
+    if (!ready) return;
+    let unlisten: (() => void) | undefined;
+    let disposed = false;
+    getCurrentWindow()
+      .onCloseRequested((e) => {
+        e.preventDefault();
+        setQuitAsk(true);
+      })
+      .then((u) => {
+        if (disposed) u();
+        else unlisten = u;
+      })
+      .catch((e) => console.error("onCloseRequested failed", e));
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [ready]);
 
   useEffect(() => {
     const refresh = () => { useTheme.getState().refresh(); };
@@ -107,6 +129,12 @@ export default function App() {
         name={closeWsId ? `${closeWsName} (${wsSessionCount} session${wsSessionCount > 1 ? "s" : ""})` : null}
         onCancel={() => setCloseWsId(null)}
         onConfirm={() => { if (closeWsId) closeWorkspace(closeWsId); setCloseWsId(null); }}
+      />
+      <ConfirmCloseModal
+        name={quitAsk ? `Vlaude (${sessions.length} session${sessions.length > 1 ? "s" : ""})` : null}
+        body="Tous les agents en cours seront arrêtés."
+        onCancel={() => setQuitAsk(false)}
+        onConfirm={() => { getCurrentWindow().destroy(); }}
       />
     </div>
   );
